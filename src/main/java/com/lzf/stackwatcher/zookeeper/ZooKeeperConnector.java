@@ -25,7 +25,7 @@ public class ZooKeeperConnector implements ZooKeeper {
         this.zookeeper = CuratorFrameworkFactory.newClient(config.getAddresses(), config.getSessionTimeout(),
                 config.getConnectTimeout(), new ExponentialBackoffRetry(1000, 100, 60000));
 
-        this.zookeeper.sync();
+        this.zookeeper.start();
     }
     @Override
     public void createEmptyNode(String path) throws Exception {

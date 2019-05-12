@@ -40,7 +40,7 @@ public class TransferConfig extends AbstractConfig implements TransferService.Co
                 throw new ConfigInitializationException("No kafka server found in zookeeper server");
             List<String> out = new ArrayList<>();
             for(String path : list) {
-                String json = new String(zooKeeper.readNode(path), Charset.forName("UTF-8"));
+                String json = new String(zooKeeper.readNode(ZOOKEEPER_KAFKA_PATH + "/" + path), Charset.forName("UTF-8"));
                 JSONObject obj = JSON.parseObject(json);
                 out.add(String.format("%s:%d", obj.getString("host"), obj.getIntValue("port")));
             }
