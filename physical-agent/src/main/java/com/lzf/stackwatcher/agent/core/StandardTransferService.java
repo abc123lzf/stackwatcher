@@ -88,17 +88,17 @@ public class StandardTransferService extends ContainerBase<Agent> implements Tra
 		executor.scheduleAtFixedRate(() -> {
 			log.info("Start process monitor data to kafka.");
 			try {
-				pushInstanceMointorDataToKafka(INS_CPU_DATA_QUEUE, StandardMonitorService.PREFIX_CPU);
-				pushInstanceMointorDataToKafka(INS_RAM_DATA_QUEUE, StandardMonitorService.PREFIX_RAM);
-				pushInstanceMointorDataToKafka(INS_NETIO_DATA_QUEUE, StandardMonitorService.PREFIX_NETWORK_IO);
-				pushInstanceMointorDataToKafka(INS_DISKIO_DATA_QUEUE, StandardMonitorService.PREFIX_DISK_IO);
-				pushInstanceMointorDataToKafka(INS_DISKCAP_DATA_QUEUE, StandardMonitorService.PREFIX_DISK_CAP);
+				pushInstanceMonitorDataToKafka(INS_CPU_DATA_QUEUE, StandardMonitorService.PREFIX_CPU);
+				pushInstanceMonitorDataToKafka(INS_RAM_DATA_QUEUE, StandardMonitorService.PREFIX_RAM);
+				pushInstanceMonitorDataToKafka(INS_NETIO_DATA_QUEUE, StandardMonitorService.PREFIX_NETWORK_IO);
+				pushInstanceMonitorDataToKafka(INS_DISKIO_DATA_QUEUE, StandardMonitorService.PREFIX_DISK_IO);
+				pushInstanceMonitorDataToKafka(INS_DISKCAP_DATA_QUEUE, StandardMonitorService.PREFIX_DISK_CAP);
 
-				pushNovaMointorDataToKafka(NOVA_CPU_DATA_QUEUE, StandardMonitorService.NOVA_CPU);
-				pushNovaMointorDataToKafka(NOVA_RAM_DATA_QUEUE, StandardMonitorService.NOVA_RAM);
-				pushNovaMointorDataToKafka(NOVA_NETIO_DATA_QUEUE, StandardMonitorService.NOVA_NETWORK_IO);
-				pushNovaMointorDataToKafka(NOVA_DISKIO_DATA_QUEUE, StandardMonitorService.NOVA_DISK_IO);
-				pushNovaMointorDataToKafka(NOVA_DISKCAP_DATA_QUEUE, StandardMonitorService.NOVA_DISK_CAP);
+				pushNovaMonitorDataToKafka(NOVA_CPU_DATA_QUEUE, StandardMonitorService.NOVA_CPU);
+				pushNovaMonitorDataToKafka(NOVA_RAM_DATA_QUEUE, StandardMonitorService.NOVA_RAM);
+				pushNovaMonitorDataToKafka(NOVA_NETIO_DATA_QUEUE, StandardMonitorService.NOVA_NETWORK_IO);
+				pushNovaMonitorDataToKafka(NOVA_DISKIO_DATA_QUEUE, StandardMonitorService.NOVA_DISK_IO);
+				pushNovaMonitorDataToKafka(NOVA_DISKCAP_DATA_QUEUE, StandardMonitorService.NOVA_DISK_CAP);
 
 				if (cfg.insAgentRecivePort() != -1) {
 					pushInstanceAgentDataToKafka(instanceAgentCPUDataQueue, INSAGENT_CPU_DATA_QUEUE);
@@ -124,7 +124,7 @@ public class StandardTransferService extends ContainerBase<Agent> implements Tra
 	 * @param topic Kafka topic
 	 * @param keyPrefix Redis键名前缀
 	 */
-	private void pushInstanceMointorDataToKafka(String topic, String keyPrefix) {
+	private void pushInstanceMonitorDataToKafka(String topic, String keyPrefix) {
 		List<String> vmIds = agent.getService(DomainManagerService.DEFAULT_SERVICE_NAME,
 				DomainManagerService.class).getAllInstanceUUID();
 		
@@ -137,25 +137,26 @@ public class StandardTransferService extends ContainerBase<Agent> implements Tra
 			List<String> dl = redisService.getList(key);
 			dataList.add(dl);
 			len += dl.size() * dl.get(0).length();
-			//redisService.delete(key);
+			redisService.delete(key);
 		}
 			
-		String data = combineInstanceJSONMointorData(dataList, len);
+		String data = combineInstanceJSONMonitorData(dataList, len);
 
 		ProducerRecord<String, String> record = new ProducerRecord<>(topic, data);
 		kafka.send(record, (meta, e) -> {
             if(e != null) {
                 log.warn(format("[组件:%s] 向Kafka添加消息时发生连接异常", getName()), e);
-            } else {
-                for(String uuid : vmIds) {
-					redisService.delete(keyPrefix + uuid);
+                int i = 0;
+				for(String uuid : vmIds) {
+					List<String> dl = dataList.get(i++);
+					redisService.insertList(keyPrefix + uuid, dl.toArray(new String[dl.size()]));
 				}
             }
         });
 	}
 	
 	
-	private static String combineInstanceJSONMointorData(List<List<String>> dataList, int initLength) {
+	private static String combineInstanceJSONMonitorData(List<List<String>> dataList, int initLength) {
 		StringBuilder sb = new StringBuilder(initLength + 100);
 		sb.append('[');
 		for(List<String> dl : dataList) {
@@ -174,18 +175,18 @@ public class StandardTransferService extends ContainerBase<Agent> implements Tra
 	 * @param topic Kafka topic
 	 * @param key Redis键名
 	 */
-	private void pushNovaMointorDataToKafka(String topic, String key) {
+	private void pushNovaMonitorDataToKafka(String topic, String key) {
 		List<String> dataList = redisService.getList(key);
+		redisService.delete(key);
+
 		String data = combineNovaJSONMonitorData(dataList, dataList.listIterator());
 
 		ProducerRecord<String, String> record = new ProducerRecord<>(topic, data);
 		kafka.send(record, (meta, e) -> {
 			if(e != null) {
 				log.warn(format("[组件:%s] 向Kafka添加消息时发生连接异常", getName()), e);
-			} else {
-			    //确保成功发送后再从Redis中删除
-			    redisService.delete(key);
-            }
+				redisService.insertList(key, dataList.toArray(new String[dataList.size()]));
+			}
 		});
 	}
 
@@ -220,6 +221,9 @@ public class StandardTransferService extends ContainerBase<Agent> implements Tra
 				break;
 			}
 		}
+
+		if(jsonList.size() == 0)
+			return;
 
 		String json = combineNovaJSONMonitorData(jsonList, jsonList.listIterator());
 		ProducerRecord<String, String> record = new ProducerRecord<>(topic, json);

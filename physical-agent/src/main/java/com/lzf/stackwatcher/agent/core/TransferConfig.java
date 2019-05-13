@@ -84,6 +84,7 @@ public class TransferConfig extends AbstractConfig implements TransferService.Co
     public Properties connectProperties() {
         Properties p = new Properties();
         p.setProperty("bootstrap.servers", kafkaAddresses());
+        p.setProperty("max.request.size", "10485760");
         p.setProperty("acks", "all");
         p.setProperty("retries", "0");
         p.setProperty("batch.size", "16384");
