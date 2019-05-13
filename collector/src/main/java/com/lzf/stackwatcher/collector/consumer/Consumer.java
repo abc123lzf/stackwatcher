@@ -41,6 +41,7 @@ public abstract class Consumer implements Runnable {
                 continue;
             for(TopicPartition tp : records.partitions()) {
                 for(ConsumerRecord<String, String> rec : records.records(tp)) {
+                    log.info("Receiver record");
                     try {
                         handlerJSONData(rec.value(), dataList);
                         queue.addAll(dataList);

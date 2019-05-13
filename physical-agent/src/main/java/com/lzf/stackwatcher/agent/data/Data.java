@@ -18,6 +18,9 @@ public interface Data extends java.io.Serializable {
 	String NOVA_NETWORK_IO = "nova.netio";
 	String NOVA_DISK_IO = "nova.diskio";
 	String NOVA_DISK_CAP = "nova.diskcap";
+
+	String NOVA_STORAGE_POOL = "nova.storage.pool";
+	String NOVA_STORAGE_VOL = "nova.storage.vol";
 	
 	String INSTANCE_INFO = "ins.info";
 	String INSTANCE_CPU = "ins.cpu";

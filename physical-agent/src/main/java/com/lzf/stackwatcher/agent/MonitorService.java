@@ -156,5 +156,7 @@ public interface MonitorService extends Service<DomainManagerService> {
 	 * @return 数据对象
 	 */
 	NovaDiskCapacityData currentNovaDiskInfo();
-	
+
+
+
 }

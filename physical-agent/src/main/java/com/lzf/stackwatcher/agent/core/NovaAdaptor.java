@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.lzf.stackwatcher.agent.data.*;
 import org.apache.log4j.Logger;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
@@ -28,18 +29,7 @@ import org.hyperic.sigar.NetInterfaceStat;
 import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.SigarException;
 import org.hyperic.sigar.Swap;
-import org.libvirt.Connect;
-import org.libvirt.LibvirtException;
-import org.libvirt.Network;
-import org.libvirt.NetworkFilter;
-import org.libvirt.StoragePool;
-
-import com.lzf.stackwatcher.agent.data.NovaCPUData;
-import com.lzf.stackwatcher.agent.data.NovaData;
-import com.lzf.stackwatcher.agent.data.NovaDiskCapacityData;
-import com.lzf.stackwatcher.agent.data.NovaDiskIOData;
-import com.lzf.stackwatcher.agent.data.NovaNetworkIOData;
-import com.lzf.stackwatcher.agent.data.NovaRAMData;
+import org.libvirt.*;
 
 /**
  * 计算节点(物理机)基本信息、监控数据获取
@@ -331,6 +321,58 @@ final class NovaAdaptor {
 			return null;
 		}
 	}
-	
-	
+
+	/**
+	 * 立刻获取当前Libvirt所管理的Hypervisor中的存储池监控数据
+	 * @return 数据对象
+	 */
+	final StoragePoolData[] currentStoragePoolData() {
+		try {
+			Connect c = service.libvirtConn;
+			String[] pools = c.listStoragePools();
+			StoragePoolData[] arr = new StoragePoolData[pools.length];
+			int i = 0;
+			for (String name : pools) {
+				StoragePool pool = c.storagePoolLookupByName(name);
+				StoragePoolInfo info = pool.getInfo();
+
+				StoragePoolData dt = new StoragePoolData(hostName, name, pool.getUUIDString(), info.allocation,
+						info.available, info.capacity, info.state.name());
+				arr[i++] = dt;
+			}
+
+			return arr;
+		} catch (Exception e) {
+			log.warn("无法获取存储池监控数据", e);
+			return null;
+		}
+	}
+
+	final StorageVolData[] currentStorageVolData() {
+		try {
+			Connect c = service.libvirtConn;
+			String[] pools = c.listStoragePools();
+
+			int i = 0;
+			List<StorageVolData> list = new ArrayList<>();
+			for (String name : pools) {
+				StoragePool pool = c.storagePoolLookupByName(name);
+				String[] vols = pool.listVolumes();
+				for(String vname : vols) {
+					StorageVol vol = pool.storageVolLookupByName(vname);
+					StorageVolInfo volInfo = vol.getInfo();
+
+					StorageVolData dt = new StorageVolData(hostName, vol.getName(), pool.getName(), pool.getUUIDString(),
+							volInfo.allocation, volInfo.capacity, volInfo.type.name());
+
+					list.add(dt);
+				}
+			}
+
+			return list.toArray(new StorageVolData[list.size()]);
+		} catch (Exception e) {
+			log.warn("无法获取存储卷监控数据", e);
+			return null;
+		}
+	}
 }

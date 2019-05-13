@@ -1,0 +1,8 @@
+{"listener_security_protocol_map": {"PLAINTEXT":"PLAINTEXT"},
+  "endpoints":["PLAINTEXT://localhost:9092"],
+  "jmx_port":-1,
+  "host":"localhost",
+  "timestamp":"1557487118144",
+  "port":9092,
+  "version":4,
+}

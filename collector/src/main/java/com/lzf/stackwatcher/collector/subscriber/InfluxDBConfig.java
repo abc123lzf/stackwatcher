@@ -59,7 +59,7 @@ public class InfluxDBConfig extends AbstractConfig {
             }
 
             Random r = new Random();
-            String json = new String(zooKeeper.readNode(influxList.get(r.nextInt(influxList.size()))), Charset.forName("UTF-8"));
+            String json = new String(zooKeeper.readNode(INFLUXDB_ZOOKEEPER_PATH + "/" + influxList.get(r.nextInt(influxList.size()))), Charset.forName("UTF-8"));
 
             JSONObject obj = JSON.parseObject(json);
             this.host = obj.getString("host");

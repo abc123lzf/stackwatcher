@@ -41,7 +41,7 @@ public class Collector extends ContainerBase<Void> implements ConfigManager {
         this.zooKeeper = new ZooKeeperConnector(configManager);
         setName(String.format("Collector [%s]", localAddress.getHostAddress()));
 
-        this.zooPath = "/stackwatcher/collector/" + localAddress.getHostName();
+        this.zooPath = "/stackwatcher/collector/" + localAddress.getCanonicalHostName();
 
         consumerManager = new ConsumerManager(this);
         subscriberManager = new SubscriberManager(this);
@@ -63,7 +63,7 @@ public class Collector extends ContainerBase<Void> implements ConfigManager {
     @Override
     protected void startInternal() {
         consumerManager.start();
-        consumerManager.start();
+        subscriberManager.start();
     }
 
     public InetAddress getLocalAddress() {

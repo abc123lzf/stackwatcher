@@ -1,13 +1,8 @@
-/**
- * 第十届中国大学生服务外包创新创业大赛
- * 团队：s1mple  选题：A02
- */
 package com.lzf.stackwatcher.agent.core;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -70,7 +65,7 @@ public class StandardTransferService extends ContainerBase<Agent> implements Tra
 		instanceAgentNetworkDataQueue = new LinkedBlockingQueue<>();
 		instanceAgentDiskDataQueue = new LinkedBlockingQueue<>();
 		
-		executor = new ScheduledThreadPoolExecutor(12, new DiscardOldestPolicyWithLogger(getClass()));
+		executor = new ScheduledThreadPoolExecutor(6, new DiscardOldestPolicyWithLogger(getClass()));
 	}
 
 	/**
@@ -91,23 +86,28 @@ public class StandardTransferService extends ContainerBase<Agent> implements Tra
 		MonitorService.Config cfg = agent.getConfig(MonitorService.DEFAULT_CONFIG_NAME, MonitorService.Config.class);
 
 		executor.scheduleAtFixedRate(() -> {
-			pushInstanceMointorDataToKafka(INS_CPU_DATA_QUEUE, StandardMonitorService.PREFIX_CPU);
-			pushInstanceMointorDataToKafka(INS_RAM_DATA_QUEUE, StandardMonitorService.PREFIX_RAM);
-			pushInstanceMointorDataToKafka(INS_NETIO_DATA_QUEUE, StandardMonitorService.PREFIX_NETWORK_IO);
-			pushInstanceMointorDataToKafka(INS_DISKIO_DATA_QUEUE, StandardMonitorService.PREFIX_DISK_IO);
-			pushInstanceMointorDataToKafka(INS_DISKCAP_DATA_QUEUE, StandardMonitorService.PREFIX_DISK_CAP);
+			log.info("Start process monitor data to kafka.");
+			try {
+				pushInstanceMointorDataToKafka(INS_CPU_DATA_QUEUE, StandardMonitorService.PREFIX_CPU);
+				pushInstanceMointorDataToKafka(INS_RAM_DATA_QUEUE, StandardMonitorService.PREFIX_RAM);
+				pushInstanceMointorDataToKafka(INS_NETIO_DATA_QUEUE, StandardMonitorService.PREFIX_NETWORK_IO);
+				pushInstanceMointorDataToKafka(INS_DISKIO_DATA_QUEUE, StandardMonitorService.PREFIX_DISK_IO);
+				pushInstanceMointorDataToKafka(INS_DISKCAP_DATA_QUEUE, StandardMonitorService.PREFIX_DISK_CAP);
 
-			pushNovaMointorDataToKafka(NOVA_CPU_DATA_QUEUE, StandardMonitorService.NOVA_CPU);
-			pushNovaMointorDataToKafka(NOVA_RAM_DATA_QUEUE, StandardMonitorService.NOVA_RAM);
-			pushNovaMointorDataToKafka(NOVA_NETIO_DATA_QUEUE, StandardMonitorService.NOVA_NETWORK_IO);
-			pushNovaMointorDataToKafka(NOVA_DISKIO_DATA_QUEUE, StandardMonitorService.NOVA_DISK_IO);
-			pushNovaMointorDataToKafka(NOVA_DISKCAP_DATA_QUEUE, StandardMonitorService.NOVA_DISK_CAP);
+				pushNovaMointorDataToKafka(NOVA_CPU_DATA_QUEUE, StandardMonitorService.NOVA_CPU);
+				pushNovaMointorDataToKafka(NOVA_RAM_DATA_QUEUE, StandardMonitorService.NOVA_RAM);
+				pushNovaMointorDataToKafka(NOVA_NETIO_DATA_QUEUE, StandardMonitorService.NOVA_NETWORK_IO);
+				pushNovaMointorDataToKafka(NOVA_DISKIO_DATA_QUEUE, StandardMonitorService.NOVA_DISK_IO);
+				pushNovaMointorDataToKafka(NOVA_DISKCAP_DATA_QUEUE, StandardMonitorService.NOVA_DISK_CAP);
 
-			if(cfg.insAgentRecivePort() != -1) {
-				pushInstanceAgentDataToKafka(instanceAgentCPUDataQueue, INSAGENT_CPU_DATA_QUEUE);
-				pushInstanceAgentDataToKafka(instanceAgentMemoryDataQueue, INSAGENT_RAM_DATA_QUEUE);
-				pushInstanceAgentDataToKafka(instanceAgentNetworkDataQueue, INSAGENT_NETWORK_DATA_QUEUE);
-				pushInstanceAgentDataToKafka(instanceAgentDiskDataQueue, INSAGENT_DISK_DATA_QUEUE);
+				if (cfg.insAgentRecivePort() != -1) {
+					pushInstanceAgentDataToKafka(instanceAgentCPUDataQueue, INSAGENT_CPU_DATA_QUEUE);
+					pushInstanceAgentDataToKafka(instanceAgentMemoryDataQueue, INSAGENT_RAM_DATA_QUEUE);
+					pushInstanceAgentDataToKafka(instanceAgentNetworkDataQueue, INSAGENT_NETWORK_DATA_QUEUE);
+					pushInstanceAgentDataToKafka(instanceAgentDiskDataQueue, INSAGENT_DISK_DATA_QUEUE);
+				}
+			} catch (Exception e) {
+				log.warn("Send data to kafka thread occur a exception", e);
 			}
 
 		}, 5, rate, TimeUnit.SECONDS);
@@ -121,10 +121,10 @@ public class StandardTransferService extends ContainerBase<Agent> implements Tra
 	
 	/**
 	 * 将存储在Redis中的云实例监控数据推送至RabbitMQ消息队列
-	 * @param queueName Kafka topic
+	 * @param topic Kafka topic
 	 * @param keyPrefix Redis键名前缀
 	 */
-	private void pushInstanceMointorDataToKafka(String queueName, String keyPrefix) {
+	private void pushInstanceMointorDataToKafka(String topic, String keyPrefix) {
 		List<String> vmIds = agent.getService(DomainManagerService.DEFAULT_SERVICE_NAME,
 				DomainManagerService.class).getAllInstanceUUID();
 		
@@ -135,21 +135,21 @@ public class StandardTransferService extends ContainerBase<Agent> implements Tra
 		for(String uuid : vmIds) {
 			key = keyPrefix + uuid;
 			List<String> dl = redisService.getList(key);
-			dataList.add(redisService.getList(key));
+			dataList.add(dl);
 			len += dl.size() * dl.get(0).length();
 			//redisService.delete(key);
 		}
 			
 		String data = combineInstanceJSONMointorData(dataList, len);
 
-		ProducerRecord<String, String> record = new ProducerRecord<>(queueName, data);
+		ProducerRecord<String, String> record = new ProducerRecord<>(topic, data);
 		kafka.send(record, (meta, e) -> {
             if(e != null) {
                 log.warn(format("[组件:%s] 向Kafka添加消息时发生连接异常", getName()), e);
             } else {
                 for(String uuid : vmIds) {
-                    redisService.delete(keyPrefix + uuid);
-                }
+					redisService.delete(keyPrefix + uuid);
+				}
             }
         });
 	}

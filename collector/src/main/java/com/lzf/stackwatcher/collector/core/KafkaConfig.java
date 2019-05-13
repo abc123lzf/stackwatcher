@@ -25,6 +25,8 @@ public class KafkaConfig extends AbstractConfig {
 
     private static final String ZOOKEEPER_KAFKA_PATH = "/brokers/ids";
 
+    private String group;
+
     private final ZooKeeper zooKeeper;
 
     private final List<String> kafkaAddresses = new CopyOnWriteArrayList<>();
@@ -44,7 +46,7 @@ public class KafkaConfig extends AbstractConfig {
                 throw new ConfigInitializationException("No kafka server found in zookeeper server");
             List<String> out = new ArrayList<>();
             for(String path : list) {
-                String json = new String(zooKeeper.readNode(path), Charset.forName("UTF-8"));
+                String json = new String(zooKeeper.readNode(ZOOKEEPER_KAFKA_PATH + "/" + path), Charset.forName("UTF-8"));
                 JSONObject obj = JSON.parseObject(json);
                 out.add(String.format("%s:%d", obj.getString("host"), obj.getIntValue("port")));
             }
@@ -57,6 +59,8 @@ public class KafkaConfig extends AbstractConfig {
         try(InputStream is = configManager.loadResource(CONFIG_PATH)) {
             Properties p = new Properties();
             p.load(is);
+
+            group = p.getProperty("kafka.group");
 
             topicMap.put(InstanceCPUConsumer.class, p.getProperty("kafka.topic.instance-cpu"));
             topicMap.put(InstanceNetworkIOConsumer.class, p.getProperty("kafka.topic.instance-network-io"));
@@ -91,10 +95,11 @@ public class KafkaConfig extends AbstractConfig {
         }
 
         p.put("bootstrap.servers", sb.toString());
+        p.put("group.id", group);
         p.put("retries", "10");
         p.put("enable.auto.commit", "false");
-        p.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        p.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        p.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        p.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         return p;
     }
 
