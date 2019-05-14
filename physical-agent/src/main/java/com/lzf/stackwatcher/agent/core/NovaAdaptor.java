@@ -363,7 +363,7 @@ final class NovaAdaptor {
 					StorageVolInfo volInfo = vol.getInfo();
 
 					StorageVolData dt = new StorageVolData(hostName, vol.getName(), pool.getName(), pool.getUUIDString(),
-							volInfo.allocation, volInfo.capacity, volInfo.type.name());
+							volInfo.allocation, volInfo.capacity, volInfo.type == null ? "Unknown" : volInfo.type.name());
 
 					list.add(dt);
 				}
