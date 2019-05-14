@@ -3,7 +3,7 @@ package com.lzf.stackwatcher.agent.data;
 * @author 李子帆
 * @version 1.0
 * @date 2018年11月23日 下午12:38:25
-* @Description 虚拟机运行状态基本数据
+* 虚拟机运行状态基本数据
 */
 public final class InstanceData extends CurrentInstanceData {
 	

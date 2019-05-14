@@ -4,19 +4,7 @@
  */
 package com.lzf.stackwatcher.agent;
 
-import com.lzf.stackwatcher.agent.data.BaseInstanceData;
-import com.lzf.stackwatcher.agent.data.InstanceDiskCapacityData;
-import com.lzf.stackwatcher.agent.data.InstanceDiskIOData;
-import com.lzf.stackwatcher.agent.data.InstanceData;
-import com.lzf.stackwatcher.agent.data.InstanceNetworkIOData;
-import com.lzf.stackwatcher.agent.data.InstanceRAMData;
-import com.lzf.stackwatcher.agent.data.InstanceVCPUData;
-import com.lzf.stackwatcher.agent.data.NovaCPUData;
-import com.lzf.stackwatcher.agent.data.NovaData;
-import com.lzf.stackwatcher.agent.data.NovaDiskCapacityData;
-import com.lzf.stackwatcher.agent.data.NovaDiskIOData;
-import com.lzf.stackwatcher.agent.data.NovaNetworkIOData;
-import com.lzf.stackwatcher.agent.data.NovaRAMData;
+import com.lzf.stackwatcher.agent.data.*;
 
 /**
  * 负责通过Libvirtd提取Hypervisor中虚拟机实例的监控数据
@@ -59,13 +47,18 @@ public interface MonitorService extends Service<DomainManagerService> {
 		int novaDiskCapacityMonitorRate();
 		//虚拟机Agent模块数据收集端口
 		int insAgentRecivePort();
+		//存储池监控频率
+		int storagePoolRate();
+		//是否打开存储卷监控
+		boolean enableStorageVolMonitor();
 	}
 	
 	@Override
 	default String serviceName() {
 		return DEFAULT_SERVICE_NAME;
 	}
-	
+
+
 	BaseInstanceData[] allInstanceBaseInfo();
 	/**
 	 * 获取虚拟机的状态信息
@@ -73,7 +66,11 @@ public interface MonitorService extends Service<DomainManagerService> {
 	 * @return 虚拟机状态监控数据
 	 */
 	InstanceData currentInstanceInfo(String uuid);
-	
+
+	/**
+	 * 获取所有虚拟机的状态信息
+	 * @return 所有虚拟机状态监控数据
+	 */
 	InstanceData[] currentAllInstanceInfo();
 	
 	/**
@@ -82,7 +79,11 @@ public interface MonitorService extends Service<DomainManagerService> {
 	 * @return 网络IO数据数组，每个虚拟机的网络设备对应一个DomainInterfaceStats
 	 */
 	InstanceNetworkIOData currentInstanceNetworkIO(String uuid);
-	
+
+	/**
+	 * 立刻获取所有虚拟机的网络IO数据
+	 * @return 所有网络IO数据数组，每个虚拟机的网络设备对应一个DomainInterfaceStats
+	 */
 	InstanceNetworkIOData[] currentAllInstanceNetworkIO();
 	
 	/**
@@ -91,7 +92,11 @@ public interface MonitorService extends Service<DomainManagerService> {
 	 * @return 包含该虚拟机所有磁盘的使用信息，每个虚拟磁盘对应一个DomainBlockInfo对象
 	 */
 	InstanceDiskCapacityData currentInstanceDiskInfo(String uuid);
-	
+
+	/**
+	 * 立刻获取所有虚拟机的磁盘占用信息
+	 * @return 数组，包含每个虚拟机所有磁盘的使用信息，每个虚拟磁盘对应一个DomainBlockInfo对象
+	 */
 	InstanceDiskCapacityData[] currentAllInstanceDiskInfo();
 	
 	/**
@@ -100,7 +105,11 @@ public interface MonitorService extends Service<DomainManagerService> {
 	 * @return 包含该虚拟机所有磁盘的IO信息，每个虚拟磁盘对应一个DomainBlockStats对象
 	 */
 	InstanceDiskIOData currentInstanceDiskIO(String uuid);
-	
+
+	/**
+	 * 立刻获取所有虚拟机的磁盘IO信息
+	 * @return 数组，包含所有虚拟机所有磁盘的IO信息，每个虚拟磁盘对应一个DomainBlockStats对象
+	 */
 	InstanceDiskIOData[] currentAllInstanceDiskIO();
 	
 	/**
@@ -109,7 +118,11 @@ public interface MonitorService extends Service<DomainManagerService> {
 	 * @return 包含该虚拟机所有虚拟CPU的使用信息
 	 */
 	InstanceVCPUData currentInstanceVCPUUsage(String uuid);
-	
+
+	/**
+	 * 立刻获取所有虚拟机的虚拟CPU使用信息
+	 * @return 数组，包含该虚拟机所有虚拟CPU的使用信息
+	 */
 	InstanceVCPUData[] currentAllInstanceVCPUUsage();
 	
 	/**
@@ -118,7 +131,11 @@ public interface MonitorService extends Service<DomainManagerService> {
 	 * @return 该虚拟机的内存数据对象
 	 */
 	InstanceRAMData currentInstanceRAMUsage(String uuid);
-	
+
+	/**
+	 * 立刻获取所有虚拟机的内存使用信息
+	 * @return 所有虚拟机的内存数据对象
+	 */
 	InstanceRAMData[] currentAllInstanceRAMUsage();
 	
 	/**
@@ -157,6 +174,15 @@ public interface MonitorService extends Service<DomainManagerService> {
 	 */
 	NovaDiskCapacityData currentNovaDiskInfo();
 
+	/**
+	 * 立刻获取当前物理机所持有的存储池监控数据
+	 * @return 存储池监控数据
+	 */
+	StoragePoolData[] currentStoragePoolData();
 
-
+	/**
+	 * 立刻获取当前物理机所持有的存储卷监控数据
+	 * @return 存储卷监控数据
+	 */
+	StorageVolData[] currentStorageVolData();
 }

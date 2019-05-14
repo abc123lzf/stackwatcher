@@ -29,6 +29,9 @@ public class MonitorConfig extends AbstractConfig implements MonitorService.Conf
     private int novaDiskIORate = 60;
     private int novaDiskCapRate = 600;
 
+    private int storagePoolRate = 60;
+    private boolean storageVol = false;
+
     private int insAgentRecivePort = 25001;
 
     MonitorConfig(ConfigManager configManager) {
@@ -56,6 +59,9 @@ public class MonitorConfig extends AbstractConfig implements MonitorService.Conf
             novaDiskIORate = Integer.valueOf(p.getProperty("monitor.physical.diskio"));
             novaDiskCapRate = Integer.valueOf(p.getProperty("monitor.physical.diskcap"));
 
+            storagePoolRate = Integer.valueOf(p.getProperty("monitor.storagepool"));
+            storageVol = Boolean.valueOf(p.getProperty("monitor.storagevol.enable"));
+
             insAgentRecivePort = Integer.valueOf(p.getProperty("instance.agent.port"));
 
         } catch (Exception e) {
@@ -74,7 +80,8 @@ public class MonitorConfig extends AbstractConfig implements MonitorService.Conf
     @Override public int novaNetworkIOMonitorRate() { return novaNetIORate; }
     @Override public int novaDiskIOMonitorRate() { return novaDiskIORate; }
     @Override public int novaDiskCapacityMonitorRate() {return novaDiskCapRate; }
-
+    @Override public int storagePoolRate() { return storagePoolRate; }
+    @Override public boolean enableStorageVolMonitor() { return storageVol; }
     @Override public int insAgentRecivePort() { return insAgentRecivePort; }
 
     @Override public String toString() {

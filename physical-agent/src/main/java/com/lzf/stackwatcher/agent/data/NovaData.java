@@ -82,6 +82,4 @@ public final class NovaData implements Data {
 		this.diskData = diskData;
 		this.networkData = networkData;
 	}
-	
-	
 }

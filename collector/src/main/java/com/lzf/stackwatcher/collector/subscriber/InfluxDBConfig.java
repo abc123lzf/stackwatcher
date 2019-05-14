@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class InfluxDBConfig extends AbstractConfig {
 
-    static final String NAME = "config.influxdb";
+    public static final String NAME = "config.influxdb";
 
     private static final String CONFIG_PATH = "classpath://influxdb.properties";
 

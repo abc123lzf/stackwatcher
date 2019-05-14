@@ -146,14 +146,15 @@ public class StandardDomainManagerService extends ContainerBase<Agent> implement
 		init();
 		start();
 	}
-	
+
+
 	@Override
 	public Agent getParent() {
 		return agent;
 	}
 	
 	@Override
-	public MonitorService getMointorService() {
+	public MonitorService getMonitorService() {
 		return monitorService;
 	}
 	
@@ -212,8 +213,11 @@ public class StandardDomainManagerService extends ContainerBase<Agent> implement
 				
 				if(!insmap.containsKey(uuid)) {
 					LibvirtDomainAdaptor adaptor = new LibvirtDomainAdaptor(this, libvirtConn, id);
-					instanceAdaptors.add(adaptor);		
-					if(adaptor.currentDomainState().state == DomainInfo.DomainState.VIR_DOMAIN_RUNNING) {
+					instanceAdaptors.add(adaptor);
+					DomainInfo info = adaptor.currentDomainState();
+					if(info == null)
+						return;
+					if(info.state == DomainInfo.DomainState.VIR_DOMAIN_RUNNING) {
 						runningInstanceAdaptors.add(adaptor);
 					}
 				} else if(deepCheck) {
@@ -230,6 +234,8 @@ public class StandardDomainManagerService extends ContainerBase<Agent> implement
 			restart();
 		} catch (DocumentException e) {
 			log.error("Domain XML文件解析异常", e);
+		} catch (Exception e) {
+			log.error("检查虚拟机状态时发生异常", e);
 		}
 	}
 }

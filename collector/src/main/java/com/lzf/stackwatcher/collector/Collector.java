@@ -1,8 +1,11 @@
 package com.lzf.stackwatcher.collector;
 
+import com.alibaba.fastjson.JSONObject;
 import com.lzf.stackwatcher.collector.core.ConsumerManager;
+import com.lzf.stackwatcher.collector.core.KafkaConfig;
 import com.lzf.stackwatcher.collector.core.SubscriberManager;
 import com.lzf.stackwatcher.collector.core.ZooKeeperConfig;
+import com.lzf.stackwatcher.collector.subscriber.InfluxDBConfig;
 import com.lzf.stackwatcher.common.*;
 import com.lzf.stackwatcher.zookeeper.ZooKeeper;
 import com.lzf.stackwatcher.zookeeper.ZooKeeperConnector;
@@ -12,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 
 public class Collector extends ContainerBase<Void> implements ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(Collector.class);
@@ -49,13 +53,6 @@ public class Collector extends ContainerBase<Void> implements ConfigManager {
 
     @Override
     protected void initInternal() {
-        try {
-            zooKeeper.createTemporaryNodeRecursive(zooPath, new byte[0]);
-        } catch (Exception e) {
-            log.error("create znode " + zooPath + "failure.", e);
-            System.exit(1);
-        }
-
         consumerManager.init();
         subscriberManager.init();
     }
@@ -64,6 +61,21 @@ public class Collector extends ContainerBase<Void> implements ConfigManager {
     protected void startInternal() {
         consumerManager.start();
         subscriberManager.start();
+
+        InfluxDBConfig dbcfg = getConfig(InfluxDBConfig.NAME, InfluxDBConfig.class);
+        KafkaConfig kc = getConfig(KafkaConfig.NAME, KafkaConfig.class);
+        JSONObject obj = new JSONObject();
+        obj.put("host", localAddress.getCanonicalHostName());
+        obj.put("persistence", dbcfg);
+        obj.put("persistence-db", "influxDB");
+        obj.put("kafka-group-id", kc.getGroup());
+
+        try {
+            zooKeeper.createTemporaryNodeRecursive(zooPath, obj.toJSONString().getBytes(Charset.forName("UTF-8")));
+        } catch (Exception e) {
+            log.error("create znode " + zooPath + "failure.", e);
+            System.exit(1);
+        }
     }
 
     public InetAddress getLocalAddress() {

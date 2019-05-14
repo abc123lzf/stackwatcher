@@ -5,6 +5,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import static java.lang.String.format;
 
+import com.lzf.stackwatcher.agent.data.*;
 import org.apache.log4j.Logger;
 import org.libvirt.DomainBlockInfo;
 import org.libvirt.DomainBlockStats;
@@ -37,19 +38,6 @@ import com.lzf.stackwatcher.agent.RedisService;
 import com.lzf.stackwatcher.agent.TransferService;
 import com.lzf.stackwatcher.agent.core.LibvirtDomainAdaptor.DiskInfo;
 import com.lzf.stackwatcher.agent.core.LibvirtDomainAdaptor.NetworkInterface;
-import com.lzf.stackwatcher.agent.data.BaseInstanceData;
-import com.lzf.stackwatcher.agent.data.InstanceDiskCapacityData;
-import com.lzf.stackwatcher.agent.data.InstanceDiskIOData;
-import com.lzf.stackwatcher.agent.data.InstanceData;
-import com.lzf.stackwatcher.agent.data.InstanceNetworkIOData;
-import com.lzf.stackwatcher.agent.data.InstanceRAMData;
-import com.lzf.stackwatcher.agent.data.InstanceVCPUData;
-import com.lzf.stackwatcher.agent.data.NovaCPUData;
-import com.lzf.stackwatcher.agent.data.NovaData;
-import com.lzf.stackwatcher.agent.data.NovaDiskCapacityData;
-import com.lzf.stackwatcher.agent.data.NovaDiskIOData;
-import com.lzf.stackwatcher.agent.data.NovaNetworkIOData;
-import com.lzf.stackwatcher.agent.data.NovaRAMData;
 
 /**
 * @author 李子帆
@@ -74,6 +62,9 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 	static final String NOVA_NETWORK_IO = "net";
 	static final String NOVA_DISK_IO = "dio";
 	static final String NOVA_DISK_CAP = "dcap";
+
+	static final String NOVA_STORAGE_POOL = "storagepool";
+	static final String NOVA_STORAGE_VOL = "storagevol";
 	
 	private StandardDomainManagerService domainManagerService;
 
@@ -109,8 +100,12 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 		
 		int insVCPU, insRAM, insNetio, insDiskio, insDiskcap;
 		int novaCPU, novaRAM, novaNetio, novaDiskio, novaDiskcap;
+		int sp;
 		
 		ScheduledExecutorService executor = domainManagerService.executor;
+
+		if(!c.enable())
+			return;
 		
 		if((insVCPU = c.insVCPUMonitorRate()) != -1)
 			executor.scheduleAtFixedRate(INS_VCPU_MONITOR_RUNNABLE, 5, insVCPU, TimeUnit.SECONDS);
@@ -126,15 +121,22 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 		executor.scheduleAtFixedRate(DOMAIN_STATUS_RUNNABLE, 5, 60, TimeUnit.SECONDS);
 		
 		if((novaCPU = c.novaCPUMonitorRate()) != -1)
-			executor.scheduleAtFixedRate(NOVA_CPU_MOINTOR_TASK, 5, novaCPU, TimeUnit.SECONDS);
+			executor.scheduleAtFixedRate(NOVA_CPU_MONITOR_TASK, 5, novaCPU, TimeUnit.SECONDS);
 		if((novaRAM = c.novaRAMMonitorRate()) != -1)
-			executor.scheduleAtFixedRate(NOVA_RAM_MOINTOR_TASK, 5, novaRAM, TimeUnit.SECONDS);
+			executor.scheduleAtFixedRate(NOVA_RAM_MONITOR_TASK, 5, novaRAM, TimeUnit.SECONDS);
 		if((novaNetio = c.novaNetworkIOMonitorRate()) != -1)
-			executor.scheduleAtFixedRate(NOVA_NETWORK_IO_MOINTOR_TASK, 5, novaNetio, TimeUnit.SECONDS);
+			executor.scheduleAtFixedRate(NOVA_NETWORK_IO_MONITOR_TASK, 5, novaNetio, TimeUnit.SECONDS);
 		if((novaDiskio = c.novaDiskIOMonitorRate()) != -1)
-			executor.scheduleAtFixedRate(NOVA_DISKIO_MOINTOR_TASK, 5, novaDiskio, TimeUnit.SECONDS);
+			executor.scheduleAtFixedRate(NOVA_DISKIO_MONITOR_TASK, 5, novaDiskio, TimeUnit.SECONDS);
 		if((novaDiskcap = c.novaDiskCapacityMonitorRate()) != -1)
-			executor.scheduleAtFixedRate(NOVA_DISKCAP_MOINTOR_TASK, 5, novaDiskcap, TimeUnit.SECONDS);
+			executor.scheduleAtFixedRate(NOVA_DISKCAP_MONITOR_TASK, 5, novaDiskcap, TimeUnit.SECONDS);
+
+		if((sp = c.storagePoolRate()) != -1) {
+			executor.scheduleAtFixedRate(NOVA_STORAGE_POOL_MONITOR_TASK, 5, sp, TimeUnit.SECONDS);
+			if(c.enableStorageVolMonitor()) {
+				executor.scheduleAtFixedRate(NOVA_STORAGE_VOL_MONITOR_TASK, 5, sp, TimeUnit.SECONDS);
+			}
+		}
 	}
 	
 	@Override
@@ -404,7 +406,7 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 		}
 	};
 	
-	private final Runnable NOVA_CPU_MOINTOR_TASK = new Runnable() {
+	private final Runnable NOVA_CPU_MONITOR_TASK = new Runnable() {
 		@Override
 		public void run() {
 			try {
@@ -416,7 +418,7 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 		}
 	};
 	
-	private final Runnable NOVA_RAM_MOINTOR_TASK = new Runnable() {	
+	private final Runnable NOVA_RAM_MONITOR_TASK = new Runnable() {
 		@Override
 		public void run() {
 			try {
@@ -428,7 +430,7 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 		}
 	};
 	
-	private final Runnable NOVA_NETWORK_IO_MOINTOR_TASK = new Runnable() {
+	private final Runnable NOVA_NETWORK_IO_MONITOR_TASK = new Runnable() {
 		@Override
 		public void run() {
 			try {
@@ -440,7 +442,7 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 		}
 	};
 	
-	private final Runnable NOVA_DISKIO_MOINTOR_TASK = new Runnable() {		
+	private final Runnable NOVA_DISKIO_MONITOR_TASK = new Runnable() {
 		@Override
 		public void run() {
 			try {
@@ -452,7 +454,7 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 		}
 	};
 	
-	private final Runnable NOVA_DISKCAP_MOINTOR_TASK = new Runnable() {
+	private final Runnable NOVA_DISKCAP_MONITOR_TASK = new Runnable() {
 		@Override
 		public void run() {
 			try {
@@ -461,7 +463,35 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 			} catch (Exception e) {
 				log.error("计算节点磁盘容量监控线程发生异常", e);
 			}
-			
+		}
+	};
+
+	private final Runnable NOVA_STORAGE_POOL_MONITOR_TASK = new Runnable() {
+		@Override
+		public void run() {
+			try {
+				StoragePoolData[] data = currentStoragePoolData();
+				for(StoragePoolData dt : data) {
+					redisService.insertList(NOVA_STORAGE_POOL, dt.toJSON());
+				}
+
+			} catch (Exception e) {
+				log.error("计算存储池监控数据线程发生异常", e);
+			}
+		}
+	};
+
+	private final Runnable NOVA_STORAGE_VOL_MONITOR_TASK = new Runnable() {
+		@Override
+		public void run() {
+			try {
+				StorageVolData[] data = currentStorageVolData();
+				for(StorageVolData dt : data) {
+					redisService.insertList(NOVA_STORAGE_VOL, dt.toJSON());
+				}
+			} catch (Exception e) {
+				log.error("计算存储池监控数据线程发生异常", e);
+			}
 		}
 	};
 	
@@ -612,14 +642,22 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 	 */
 	private InstanceVCPUData parseVcpuInfoToData(LibvirtDomainAdaptor adaptor) {
 		VcpuInfo[] stInf = adaptor.currentCPUStates();
+		if(stInf == null)
+			return null;
+
 		long st = System.currentTimeMillis();
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
-			log.warn(String.format("[虚拟机UUID:%s] 获取VCPU使用数据失败"), e);
+			log.warn(String.format("[虚拟机UUID:%s] 获取VCPU使用数据失败", adaptor.uuid), e);
 			return null;
 		}
+
 		VcpuInfo[] edInf = adaptor.currentCPUStates();
+
+		if(edInf == null)
+			return null;
+
 		long ed = System.currentTimeMillis();
 		long d = ed - st;
 		
@@ -662,6 +700,9 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 	 */
 	private InstanceData parseDomainInfoToInstanceData(LibvirtDomainAdaptor adaptor) {
 		DomainInfo domainInfo = adaptor.currentDomainState();
+		if(domainInfo == null)
+			return null;
+
 		int len1, len2;
 		InstanceData.NetworkInterfaceData[] interfaceData = new InstanceData.NetworkInterfaceData[len1 = adaptor.networkInterfaces.length];
 		InstanceData.DiskData[] diskData = new InstanceData.DiskData[len2 = adaptor.diskinfos.length];
@@ -748,5 +789,15 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 	@Override
 	public NovaDiskCapacityData currentNovaDiskInfo() {
 		return domainManagerService.novaAdaptor.currentDiskUsage();
+	}
+
+	@Override
+	public StoragePoolData[] currentStoragePoolData() {
+		return domainManagerService.novaAdaptor.currentStoragePoolData();
+	}
+
+	@Override
+	public StorageVolData[] currentStorageVolData() {
+		return domainManagerService.novaAdaptor.currentStorageVolData();
 	}
 }

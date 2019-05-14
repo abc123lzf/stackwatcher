@@ -11,10 +11,9 @@ public interface DomainManagerService extends Service<Agent> {
 	
 	String DEFAULT_SERVICE_NAME = "service.domainManager";
 	String DEFAULT_CONFIG_NAME = "config.domainManager";
+
 	
-	String JNA_PROPERTY_KEY = "jna.library.path";
-	
-	MonitorService getMointorService();
+	MonitorService getMonitorService();
 	
 	@Override
 	default String serviceName() {
@@ -31,4 +30,5 @@ public interface DomainManagerService extends Service<Agent> {
 	 * @return 宿主机名
 	 */
 	String getHostName();
+
 }

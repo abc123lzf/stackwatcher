@@ -19,7 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class KafkaConfig extends AbstractConfig {
 
-    static final String NAME = "config.kafka";
+    public static final String NAME = "config.kafka";
 
     private static final String CONFIG_PATH = "classpath://kafka.properties";
 
@@ -105,5 +105,9 @@ public class KafkaConfig extends AbstractConfig {
 
     public String getTopic(Class<? extends Consumer> klass) {
         return topicMap.get(klass);
+    }
+
+    public String getGroup() {
+        return group;
     }
 }

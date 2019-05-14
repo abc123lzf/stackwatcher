@@ -6,11 +6,17 @@ import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.lzf.stackwatcher.agent.*;
 import com.lzf.stackwatcher.agent.Service;
+import com.lzf.stackwatcher.agent.data.InstanceData;
+import com.lzf.stackwatcher.agent.data.NovaData;
+import com.lzf.stackwatcher.agent.data.StoragePoolData;
 import com.lzf.stackwatcher.common.*;
 import com.lzf.stackwatcher.zookeeper.ZooKeeper;
 import com.lzf.stackwatcher.zookeeper.ZooKeeperConnector;
@@ -30,6 +36,10 @@ public class StandardAgent extends ContainerBase<Void> implements Agent {
 	private ConfigManager configManager = new DefaultConfigManager("ConfigManager");
 
 	private ZooKeeper zooKeeper;
+
+	private ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(1);
+
+	private boolean createNode = false;
 	
 	public StandardAgent() {
 		setName("Agent");
@@ -64,42 +74,57 @@ public class StandardAgent extends ContainerBase<Void> implements Agent {
 			entry.getValue().start();
 		}
 
-		// 设置ZNode
-		DomainManagerService dms = getService(DomainManagerService.DEFAULT_SERVICE_NAME, DomainManagerService.class);
-		MonitorService.Config cfg = getConfig(MonitorService.DEFAULT_CONFIG_NAME, MonitorService.Config.class);
+		executor.scheduleAtFixedRate(() -> {
+			// 设置ZNode
+			DomainManagerService dms = getService(DomainManagerService.DEFAULT_SERVICE_NAME, DomainManagerService.class);
+			MonitorService ms = dms.getMonitorService();
+			MonitorService.Config cfg = getConfig(MonitorService.DEFAULT_CONFIG_NAME, MonitorService.Config.class);
 
-		JSONObject obj = new JSONObject();
-		obj.put("host", dms.getHostName());
+			JSONObject obj = new JSONObject();
+			obj.put("host", dms.getHostName());
 
-		JSONArray insArr = new JSONArray();
-		insArr.add(dms.getAllInstanceUUID());
-		obj.put("instances", insArr);
+			JSONArray insArr = new JSONArray();
+			insArr.add(dms.getAllInstanceUUID());
+			obj.put("instances", insArr);
 
-		obj.put("instance-monitor-enable", cfg.enable());
-		if(cfg.enable()) {
-			JSONObject ins = new JSONObject();
-			ins.put("cpu", cfg.insVCPUMonitorRate());
-			ins.put("network", cfg.insNetworkIOMonitorRate());
-			ins.put("disk-io", cfg.insDiskIOMonitorRate());
-			ins.put("disk-capacity", cfg.insDiskCapacityMonitorRate());
-			obj.put("instance-monitor-rate", ins);
-		}
+			obj.put("instance-monitor-enable", cfg.enable());
+			if (cfg.enable()) {
+				JSONObject ins = new JSONObject();
+				ins.put("cpu", cfg.insVCPUMonitorRate());
+				ins.put("network", cfg.insNetworkIOMonitorRate());
+				ins.put("disk-io", cfg.insDiskIOMonitorRate());
+				ins.put("disk-capacity", cfg.insDiskCapacityMonitorRate());
+				obj.put("instance-monitor-rate", ins);
+			}
 
-		JSONObject nova = new JSONObject();
-		nova.put("cpu", cfg.novaCPUMonitorRate());
-		nova.put("memory", cfg.novaRAMMonitorRate());
-		nova.put("network", cfg.novaNetworkIOMonitorRate());
-		nova.put("disk-io", cfg.novaDiskIOMonitorRate());
-		nova.put("disk-capacity", cfg.novaDiskCapacityMonitorRate());
-		obj.put("nova-monitor-rate", nova);
+			JSONObject nova = new JSONObject();
+			nova.put("cpu", cfg.novaCPUMonitorRate());
+			nova.put("memory", cfg.novaRAMMonitorRate());
+			nova.put("network", cfg.novaNetworkIOMonitorRate());
+			nova.put("disk-io", cfg.novaDiskIOMonitorRate());
+			nova.put("disk-capacity", cfg.novaDiskCapacityMonitorRate());
+			obj.put("nova-monitor-rate", nova);
 
-		obj.put("instance-agent-port", cfg.insAgentRecivePort());
+			obj.put("instance-agent-port", cfg.insAgentRecivePort());
+			obj.put("nova-info", ms.novaInfo());
+			obj.put("instance-info", ms.currentAllInstanceInfo());
+			obj.put("storage-pool-info", ms.currentStoragePoolData());
 
-		try {
-			zooKeeper.createTemporaryNodeRecursive("/stackwatcher/agent/" + dms.getHostName(), obj.toJSONString().getBytes(Charset.forName("UTF-8")));
-		} catch (Exception e) {
-			log.error("Can not create ZNode at path /stackwatcher/agent/" + dms.getHostName());
-		}
+			if(!createNode) {
+				try {
+					zooKeeper.createTemporaryNodeRecursive("/stackwatcher/agent/" + dms.getHostName(), obj.toJSONString().getBytes(Charset.forName("UTF-8")));
+					createNode = true;
+				} catch (Exception e) {
+					log.error("Can not create ZNode at path /stackwatcher/agent/" + dms.getHostName());
+				}
+			} else {
+				try {
+					zooKeeper.updateNode("/stackwatcher/agent/" + dms.getHostName(), obj.toJSONString().getBytes(Charset.forName("UTF-8")));
+				} catch (Exception e) {
+					log.error("Can not update ZNode at path /stackwatcher/agent/" + dms.getHostName());
+				}
+			}
+		}, 10, 300, TimeUnit.SECONDS);
 	}
 	
 	@Override

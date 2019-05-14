@@ -36,19 +36,17 @@ public abstract class Consumer implements Runnable {
         Thread t = Thread.currentThread();
         final List<TimeSeriesData> dataList = new ArrayList<>(256);
         while (!t.isInterrupted()) {
-            ConsumerRecords<String, String> records = kafka.poll(Duration.ZERO);
+            ConsumerRecords<String, String> records = kafka.poll(Duration.ofMinutes(1));
             if(records == null)
                 continue;
-            for(TopicPartition tp : records.partitions()) {
-                for(ConsumerRecord<String, String> rec : records.records(tp)) {
-                    log.info("Receiver record");
-                    try {
-                        handlerJSONData(rec.value(), dataList);
-                        queue.addAll(dataList);
-                        dataList.clear();
-                    } catch (Exception e) {
-                        log.warn("处理JSON数据时发生异常", e);
-                    }
+
+            for(ConsumerRecord<String, String> rec : records) {
+                try {
+                    handlerJSONData(rec.value(), dataList);
+                    queue.addAll(dataList);
+                    dataList.clear();
+                } catch (Exception e) {
+                    log.warn("处理JSON数据时发生异常", e);
                 }
             }
         }

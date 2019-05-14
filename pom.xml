@@ -12,6 +12,7 @@
         <module>physical-agent</module>
         <module>instance-agent</module>
         <module>collector</module>
+        <module>sentinel</module>
     </modules>
 
     <properties>
