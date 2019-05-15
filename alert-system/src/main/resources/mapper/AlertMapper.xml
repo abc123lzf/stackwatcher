@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lzf.stackwatcher.alert.dao.AlertMapper">
+  <resultMap id="BaseResultMap" type="com.lzf.stackwatcher.alert.entity.Alert">
+    <result column="id" jdbcType="INTEGER" property="id" />
+    <result column="object" jdbcType="VARCHAR" property="object" />
+    <result column="rule_id" jdbcType="INTEGER" property="ruleId" />
+    <result column="notify_ids" jdbcType="VARCHAR" property="notifyIds" />
+    <result column="used" jdbcType="TINYINT" property="used" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, object, rule_id, notify_ids, used
+  </sql>
+  <select id="selectUsingRuleIdByObject" parameterType="java.lang.String" resultType="java.lang.Integer">
+    SELECT a.rule_id FROM (SELECT rule_id, used FROM alert_apply_inf WHERE object = #{0}) AS a WHERE a.used = 1;
+  </select>
+  <select id="selectByExample" parameterType="com.lzf.stackwatcher.alert.entity.AlertExample" resultMap="BaseResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    'true' as QUERYID,
+    <include refid="Base_Column_List" />
+    from alert_apply_inf
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  <delete id="deleteByExample" parameterType="com.lzf.stackwatcher.alert.entity.AlertExample">
+    delete from alert_apply_inf
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.lzf.stackwatcher.alert.entity.Alert">
+    insert into alert_apply_inf (id, object, rule_id, 
+      notify_ids, used)
+    values (#{id,jdbcType=INTEGER}, #{object,jdbcType=VARCHAR}, #{ruleId,jdbcType=INTEGER}, 
+      #{notifyIds,jdbcType=VARCHAR}, #{used,jdbcType=TINYINT})
+  </insert>
+  <insert id="insertSelective" parameterType="com.lzf.stackwatcher.alert.entity.Alert">
+    insert into alert_apply_inf
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="object != null">
+        object,
+      </if>
+      <if test="ruleId != null">
+        rule_id,
+      </if>
+      <if test="notifyIds != null">
+        notify_ids,
+      </if>
+      <if test="used != null">
+        used,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="object != null">
+        #{object,jdbcType=VARCHAR},
+      </if>
+      <if test="ruleId != null">
+        #{ruleId,jdbcType=INTEGER},
+      </if>
+      <if test="notifyIds != null">
+        #{notifyIds,jdbcType=VARCHAR},
+      </if>
+      <if test="used != null">
+        #{used,jdbcType=TINYINT},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.lzf.stackwatcher.alert.entity.AlertExample" resultType="java.lang.Long">
+    select count(*) from alert_apply_inf
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map">
+    update alert_apply_inf
+    <set>
+      <if test="record.id != null">
+        id = #{record.id,jdbcType=INTEGER},
+      </if>
+      <if test="record.object != null">
+        object = #{record.object,jdbcType=VARCHAR},
+      </if>
+      <if test="record.ruleId != null">
+        rule_id = #{record.ruleId,jdbcType=INTEGER},
+      </if>
+      <if test="record.notifyIds != null">
+        notify_ids = #{record.notifyIds,jdbcType=VARCHAR},
+      </if>
+      <if test="record.used != null">
+        used = #{record.used,jdbcType=TINYINT},
+      </if>
+    </set>
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map">
+    update alert_apply_inf
+    set id = #{record.id,jdbcType=INTEGER},
+      object = #{record.object,jdbcType=VARCHAR},
+      rule_id = #{record.ruleId,jdbcType=INTEGER},
+      notify_ids = #{record.notifyIds,jdbcType=VARCHAR},
+      used = #{record.used,jdbcType=TINYINT}
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+</mapper>

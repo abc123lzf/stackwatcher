@@ -148,9 +148,17 @@ final class NovaAdaptor {
 			diskData = new NovaData.NovaDiskData[fslist.length];
 			for(FileSystem fs : fslist) {
 				FileSystemUsage usage = sigar.getFileSystemUsage(fs.getDirName());
+				if(usage.getTotal() == 0)
+					continue;
+
 				diskData[i++] = new NovaData.NovaDiskData(fs.getDevName(), fs.getDirName(),
 						fs.getSysTypeName(), usage.getTotal());
 			}
+
+			NovaData.NovaDiskData[] t = new NovaData.NovaDiskData[i];
+			System.arraycopy(diskData, 0, t, 0, i);
+			diskData = t;
+
 		} catch (SigarException e) {
 			log.warn("无法获取当前计算节点的磁盘信息", e);
 		}

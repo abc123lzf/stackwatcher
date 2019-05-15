@@ -1,5 +1,6 @@
 package com.lzf.stackwatcher.sentinel.service;
 
+import com.lzf.stackwatcher.sentinel.bean.NodeInfo;
 import com.lzf.stackwatcher.sentinel.entity.Node;
 import org.springframework.stereotype.Service;
 
@@ -19,4 +20,12 @@ public interface NodeService {
      * @param node 节点对象
      */
     void insertNode(Node node);
+
+    /**
+     * 获取指定节点的配置信息
+     * @param id 节点ID
+     * @return NodeInfo对象
+     *
+     */
+    NodeInfo getNodeInfo(int id);
 }

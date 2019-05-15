@@ -69,6 +69,7 @@ public class Collector extends ContainerBase<Void> implements ConfigManager {
         obj.put("persistence", dbcfg);
         obj.put("persistence-db", "influxDB");
         obj.put("kafka-group-id", kc.getGroup());
+        obj.put("using-kafka-addresses", kc.getKafkaAddresses());
 
         try {
             zooKeeper.createTemporaryNodeRecursive(zooPath, obj.toJSONString().getBytes(Charset.forName("UTF-8")));

@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lzf.stackwatcher.alert.dao.RuleMapper">
+  <resultMap id="BaseResultMap" type="com.lzf.stackwatcher.alert.entity.Rule">
+    <result column="id" jdbcType="INTEGER" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="items" jdbcType="SMALLINT" property="items" />
+    <result column="period" jdbcType="INTEGER" property="period" />
+    <result column="period_keep" jdbcType="INTEGER" property="periodKeep" />
+    <result column="method" jdbcType="CHAR" property="method" />
+    <result column="compare" jdbcType="CHAR" property="compare" />
+    <result column="number" jdbcType="DOUBLE" property="number" />
+    <result column="silence_time" jdbcType="INTEGER" property="silenceTime" />
+    <result column="start_time" jdbcType="TIME" property="startTime" />
+    <result column="end_time" jdbcType="TIME" property="endTime" />
+    <result column="used" jdbcType="TINYINT" property="used" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, name, items, period, period_keep, method, compare, number, silence_time, start_time, 
+    end_time, used
+  </sql>
+  
+  <select id="selectByExample" parameterType="com.lzf.stackwatcher.alert.entity.RuleExample" resultMap="BaseResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    'true' as QUERYID,
+    <include refid="Base_Column_List" />
+    from rule_inf
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  
+  <delete id="deleteByExample" parameterType="com.lzf.stackwatcher.alert.entity.RuleExample">
+    delete from rule_inf
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.lzf.stackwatcher.alert.entity.Rule">
+    insert into rule_inf (id, name, items, 
+      period, period_keep, method, 
+      compare, number, silence_time, 
+      start_time, end_time, used)
+    values (#{id,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR}, #{items,jdbcType=SMALLINT}, 
+      #{period,jdbcType=INTEGER}, #{periodKeep,jdbcType=INTEGER}, #{method,jdbcType=CHAR}, 
+      #{compare,jdbcType=CHAR}, #{number,jdbcType=DOUBLE}, #{silenceTime,jdbcType=INTEGER}, 
+      #{startTime,jdbcType=TIME}, #{endTime,jdbcType=TIME}, #{used,jdbcType=TINYINT})
+  </insert>
+  <insert id="insertSelective" parameterType="com.lzf.stackwatcher.alert.entity.Rule">
+    insert into rule_inf
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="name != null">
+        name,
+      </if>
+      <if test="items != null">
+        items,
+      </if>
+      <if test="period != null">
+        period,
+      </if>
+      <if test="periodKeep != null">
+        period_keep,
+      </if>
+      <if test="method != null">
+        method,
+      </if>
+      <if test="compare != null">
+        compare,
+      </if>
+      <if test="number != null">
+        number,
+      </if>
+      <if test="silenceTime != null">
+        silence_time,
+      </if>
+      <if test="startTime != null">
+        start_time,
+      </if>
+      <if test="endTime != null">
+        end_time,
+      </if>
+      <if test="used != null">
+        used,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="name != null">
+        #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="items != null">
+        #{items,jdbcType=SMALLINT},
+      </if>
+      <if test="period != null">
+        #{period,jdbcType=INTEGER},
+      </if>
+      <if test="periodKeep != null">
+        #{periodKeep,jdbcType=INTEGER},
+      </if>
+      <if test="method != null">
+        #{method,jdbcType=CHAR},
+      </if>
+      <if test="compare != null">
+        #{compare,jdbcType=CHAR},
+      </if>
+      <if test="number != null">
+        #{number,jdbcType=DOUBLE},
+      </if>
+      <if test="silenceTime != null">
+        #{silenceTime,jdbcType=INTEGER},
+      </if>
+      <if test="startTime != null">
+        #{startTime,jdbcType=TIME},
+      </if>
+      <if test="endTime != null">
+        #{endTime,jdbcType=TIME},
+      </if>
+      <if test="used != null">
+        #{used,jdbcType=TINYINT},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.lzf.stackwatcher.alert.entity.RuleExample" resultType="java.lang.Long">
+    select count(*) from rule_inf
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map">
+    update rule_inf
+    <set>
+      <if test="record.id != null">
+        id = #{record.id,jdbcType=INTEGER},
+      </if>
+      <if test="record.name != null">
+        name = #{record.name,jdbcType=VARCHAR},
+      </if>
+      <if test="record.items != null">
+        items = #{record.items,jdbcType=SMALLINT},
+      </if>
+      <if test="record.period != null">
+        period = #{record.period,jdbcType=INTEGER},
+      </if>
+      <if test="record.periodKeep != null">
+        period_keep = #{record.periodKeep,jdbcType=INTEGER},
+      </if>
+      <if test="record.method != null">
+        method = #{record.method,jdbcType=CHAR},
+      </if>
+      <if test="record.compare != null">
+        compare = #{record.compare,jdbcType=CHAR},
+      </if>
+      <if test="record.number != null">
+        number = #{record.number,jdbcType=DOUBLE},
+      </if>
+      <if test="record.silenceTime != null">
+        silence_time = #{record.silenceTime,jdbcType=INTEGER},
+      </if>
+      <if test="record.startTime != null">
+        start_time = #{record.startTime,jdbcType=TIME},
+      </if>
+      <if test="record.endTime != null">
+        end_time = #{record.endTime,jdbcType=TIME},
+      </if>
+      <if test="record.used != null">
+        used = #{record.used,jdbcType=TINYINT},
+      </if>
+    </set>
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map">
+    update rule_inf
+    set id = #{record.id,jdbcType=INTEGER},
+      name = #{record.name,jdbcType=VARCHAR},
+      items = #{record.items,jdbcType=SMALLINT},
+      period = #{record.period,jdbcType=INTEGER},
+      period_keep = #{record.periodKeep,jdbcType=INTEGER},
+      method = #{record.method,jdbcType=CHAR},
+      compare = #{record.compare,jdbcType=CHAR},
+      number = #{record.number,jdbcType=DOUBLE},
+      silence_time = #{record.silenceTime,jdbcType=INTEGER},
+      start_time = #{record.startTime,jdbcType=TIME},
+      end_time = #{record.endTime,jdbcType=TIME},
+      used = #{record.used,jdbcType=TINYINT}
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+</mapper>

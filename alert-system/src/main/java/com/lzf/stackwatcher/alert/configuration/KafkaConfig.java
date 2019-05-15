@@ -1,8 +1,8 @@
-package com.lzf.stackwatcher.collector.core;
+package com.lzf.stackwatcher.alert.configuration;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.lzf.stackwatcher.collector.consumer.*;
+import com.lzf.stackwatcher.alert.core.consumer.*;
 import com.lzf.stackwatcher.common.AbstractConfig;
 import com.lzf.stackwatcher.common.ConfigInitializationException;
 import com.lzf.stackwatcher.common.ConfigManager;
@@ -21,7 +21,7 @@ public class KafkaConfig extends AbstractConfig {
 
     public static final String NAME = "config.kafka";
 
-    private static final String CONFIG_PATH = "classpath://kafka.properties";
+    private static final String CONFIG_PATH = "classpath://config.properties";
 
     private static final String ZOOKEEPER_KAFKA_PATH = "/brokers/ids";
 

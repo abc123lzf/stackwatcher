@@ -13,6 +13,7 @@
         <module>instance-agent</module>
         <module>collector</module>
         <module>sentinel</module>
+        <module>alert-system</module>
     </modules>
 
     <properties>
@@ -52,6 +53,13 @@
             <artifactId>kafka_2.12</artifactId>
             <version>2.2.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.37</version>
+        </dependency>
+
     </dependencies>
 
 

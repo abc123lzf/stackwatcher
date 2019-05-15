@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: alert-system
+  profiles:
+    active: 192.168.142.1
+  redis:
+    database: 0
+    host: 192.168.142.30
+    port: 6379
+    password:
+    jedis:
+      pool:
+        max-active: 8
+        max-wait: -1
+        max-idle: 4
+        min-idle: 0
+    timeout: 10000
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/stackwatcher_alert_system?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8&useSSL=false
+      username: root
+      password: abc123lzf
+      filters: stat,wall,slf4j,config
+      initial-size: 1
+      max-active: 5
+      min-idle: 1
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: select 'x'
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-open-prepared-statements: 50
+      max-pool-prepared-statement-per-connection-size: 20
+    type: com.alibaba.druid.pool.DruidDataSource
+
+
+mybatis:
+  mapper-locations: classpath:mapper/*Mapper.xml
+  type-aliases-package: com.jsu.shoppingmall.entity
+  configuration:
+    cache-enabled: true
+
+
+#打印SQL语句
+logging:
+  level:
+    com.jsu.shoppingmall.dao: DEBUG

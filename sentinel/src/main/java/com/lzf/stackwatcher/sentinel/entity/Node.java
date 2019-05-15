@@ -1,6 +1,12 @@
 package com.lzf.stackwatcher.sentinel.entity;
 
 public class Node {
+
+    public static final int TYPE_AGENT = 0;
+    public static final int TYPE_COLLECTOR = 1;
+    public static final int TYPE_KAFKA = 2;
+    public static final int TYPE_INFLUXDB = 3;
+
     /**
      * 主键ID
      */

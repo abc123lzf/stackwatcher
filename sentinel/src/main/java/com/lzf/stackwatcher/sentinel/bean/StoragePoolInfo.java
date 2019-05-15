@@ -1,11 +1,6 @@
-package com.lzf.stackwatcher.agent.data;
+package com.lzf.stackwatcher.sentinel.bean;
 
-/**
- * 存储池监控数据
- * @see org.libvirt.StoragePool
- * @see org.libvirt.StoragePoolInfo
- */
-public class StoragePoolData extends CurrentNovaData {
+class StoragePoolInfo {
 
     //存储池名称
     public final String name;
@@ -31,9 +26,8 @@ public class StoragePoolData extends CurrentNovaData {
      */
     public final String status;
 
-    public StoragePoolData(String host, String name, String uuid, long allocation,
+    public StoragePoolInfo(String name, String uuid, long allocation,
                            long available, long capacity, String status) {
-        super(host, NOVA_STORAGE_POOL);
         this.name = name;
         this.uuid = uuid;
         this.allocation = allocation;
@@ -41,4 +35,5 @@ public class StoragePoolData extends CurrentNovaData {
         this.capacity = capacity;
         this.status = status;
     }
+
 }
