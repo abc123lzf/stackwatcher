@@ -3,6 +3,8 @@ package com.lzf.stackwatcher.alert.core.consumer;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import com.lzf.stackwatcher.entity.monitor.NovaNetworkIOMonitorData;
 
@@ -44,5 +46,20 @@ public class NovaNetworkIOConsumer extends Consumer {
                 out.add(data);
             }
         }
+    }
+
+    @Override
+    protected void resolveTimeSerialData(TimeSeriesData tsd, List<Data> out) {
+        NovaNetworkIOMonitorData data = (NovaNetworkIOMonitorData) tsd;
+        String host = data.getHost();
+        long time = data.getTime();
+        String device = data.getDevice();
+
+        out.add(new Data(host, Rule.Type.NOVA_NET_RX_BYTES, device, data.getRxBytes(), time));
+        out.add(new Data(host, Rule.Type.NOVA_NET_RX_PACKETS, device, data.getRxPackets(), time));
+        out.add(new Data(host, Rule.Type.NOVA_NET_RX_DROP, device, data.getRxDrop(), time));
+        out.add(new Data(host, Rule.Type.NOVA_NET_TX_BYTES, device, data.getTxBytes(), time));
+        out.add(new Data(host, Rule.Type.NOVA_NET_TX_PACKETS, device, data.getTxPackets(), time));
+        out.add(new Data(host, Rule.Type.NOVA_NET_TX_DROP, device, data.getTxDrop(), time));
     }
 }

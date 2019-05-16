@@ -3,6 +3,8 @@ package com.lzf.stackwatcher.alert.core.consumer;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import com.lzf.stackwatcher.entity.monitor.InstanceAgentMemoryMonitorData;
 
@@ -35,5 +37,18 @@ public class InstanceAgentMemoryConsumer extends Consumer {
 
             out.add(data);
         }
+    }
+
+    @Override
+    protected void resolveTimeSerialData(TimeSeriesData tsd, List<Data> out) {
+        InstanceAgentMemoryMonitorData data = (InstanceAgentMemoryMonitorData) tsd;
+        String uuid = data.getUuid();
+        long time = data.getTime();
+
+        out.add(new Data(uuid, Rule.Type.INS_AGENT_MEMORY_USED, data.getUsed(), time));
+        out.add(new Data(uuid, Rule.Type.INS_AGENT_MEMORY_ACTUALUSED, data.getActualUsed(), time));
+        out.add(new Data(uuid, Rule.Type.INS_AGENT_MEMORY_FREE, data.getFree(), time));
+        out.add(new Data(uuid, Rule.Type.INS_AGENT_MEMORY_USED_UTILIZATION, data.getUsedUtilization(), time));
+        out.add(new Data(uuid, Rule.Type.INS_AGENT_MEMORY_FREE_UTILIZATION, data.getFreeUtilization(), time));
     }
 }

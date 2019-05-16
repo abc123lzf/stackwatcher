@@ -3,6 +3,8 @@ package com.lzf.stackwatcher.alert.core.consumer;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import com.lzf.stackwatcher.entity.monitor.NovaDiskIOMonitorData;
 
@@ -38,5 +40,18 @@ public class NovaDiskIOConsumer extends Consumer {
                 out.add(data);
             }
         }
+    }
+
+    @Override
+    protected void resolveTimeSerialData(TimeSeriesData tsd, List<Data> out) {
+        NovaDiskIOMonitorData data = (NovaDiskIOMonitorData) tsd;
+        String host = data.getHost();
+        long time = data.getTime();
+        String device = data.getDevice();
+
+        out.add(new Data(host, Rule.Type.NOVA_DISK_READ_BYTES, device, data.getRdBytes(), time));
+        out.add(new Data(host, Rule.Type.NOVA_DISK_READ_IOPS, device, data.getRdReq(), time));
+        out.add(new Data(host, Rule.Type.NOVA_DISK_WRITE_BYTES, device, data.getWrBytes(), time));
+        out.add(new Data(host, Rule.Type.NOVA_DISK_WRITE_IOPS, device, data.getWrReq(), time));
     }
 }

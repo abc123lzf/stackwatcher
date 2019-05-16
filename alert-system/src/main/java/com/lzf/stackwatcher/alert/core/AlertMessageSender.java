@@ -11,7 +11,12 @@ import java.util.List;
 @Component
 public class AlertMessageSender {
 
-    @Autowired private RedisTemplate<String, Number> siRedis;
+    private final RedisTemplate<String, Number> siRedis;
+
+    @Autowired
+    public AlertMessageSender(RedisTemplate<String, Number> siRedis) {
+        this.siRedis = siRedis;
+    }
 
     public void receive(Rule rule, List<Notify> list) {
         for(Notify notify : list) {

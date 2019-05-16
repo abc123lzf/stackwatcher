@@ -3,6 +3,8 @@ package com.lzf.stackwatcher.alert.core.consumer;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import com.lzf.stackwatcher.entity.monitor.InstanceAgentDiskMonitorData;
 
@@ -44,4 +46,18 @@ public class InstanceAgentDiskConsumer extends Consumer {
                 out.add(data);
             }
         }
-    }}
+    }
+
+    @Override
+    protected void resolveTimeSerialData(TimeSeriesData tsd, List<Data> out) {
+        InstanceAgentDiskMonitorData data = (InstanceAgentDiskMonitorData) tsd;
+        String uuid = data.getUuid();
+        long time = data.getTime();
+        String device = data.getDevice();
+
+        out.add(new Data(uuid, Rule.Type.INS_AGENT_DISK_USED, device, data.getUsed(), time));
+        out.add(new Data(uuid, Rule.Type.INS_AGENT_DISK_UTILIZATION, device, data.getUtilization(), time));
+        out.add(new Data(uuid, Rule.Type.INS_AGENT_DISK_FREE, device, data.getFree(), time));
+        out.add(new Data(uuid, Rule.Type.INS_AGENT_DISK_TOTAL, device, data.getTotal(), time));
+    }
+}

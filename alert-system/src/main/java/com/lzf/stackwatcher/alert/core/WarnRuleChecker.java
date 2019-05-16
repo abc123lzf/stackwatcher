@@ -14,49 +14,60 @@ import java.util.concurrent.*;
 @Component
 public class WarnRuleChecker {
 
-    @Autowired private RedisTemplate<String, String> ssRedis;
-    @Autowired private RedisTemplate<String, Number> siRedis;
-    @Autowired private RuleMapper ruleMapper;
-    @Autowired private AlertMapper alertMapper;
+    private final RedisTemplate<String, String> ssRedis;
+    private final RedisTemplate<String, Number> siRedis;
+    private final RuleMapper ruleMapper;
+    private final AlertMapper alertMapper;
 
     private final ExecutorService checkDataExecutor = new ThreadPoolExecutor(1, 1, 0,
             TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+
+    @Autowired
+    public WarnRuleChecker(RedisTemplate<String, String> ssRedis, RedisTemplate<String, Number> siRedis,
+                           RuleMapper ruleMapper, AlertMapper alertMapper) {
+        this.ssRedis = ssRedis;
+        this.siRedis = siRedis;
+        this.ruleMapper = ruleMapper;
+        this.alertMapper = alertMapper;
+    }
 
 
     private final class CheckDataCallback implements Runnable {
         private final Rule rule;
         private final String host;
         private final int type;
+        private final String device;
         private final double newValue;
         private final long dataTime;
 
-        public CheckDataCallback(Rule rule, String host, int type, double newValue, long dataTime) {
+        public CheckDataCallback(Rule rule, String host, int type, String device, double newValue, long dataTime) {
             this.rule = rule;
             this.host = host;
             this.type = type;
             this.newValue = newValue;
             this.dataTime = dataTime;
+            this.device = device;
         }
 
         @Override
         public void run() {
-            checkDate0(rule, host, type, newValue, dataTime);
+            checkDate0(rule, host, type, device, newValue, dataTime);
         }
     }
 
-    public void checkData(String host, int type, double newValue, long dataTime) {
-        List<Integer> ids = alertMapper.selectUsingRuleIdByObject(host);
+    public void checkData(Data data) {
+        List<Integer> ids = alertMapper.selectUsingRuleIdByObject(data.getHost());
         RuleExample re = new RuleExample();
         re.createCriteria().andIdIn(ids);
 
         List<Rule> list = ruleMapper.selectByExample(re);
 
         for(Rule rule : list) {
-            checkDate0(rule, host, type, newValue, dataTime);
+            checkDate0(rule, data.getHost(), data.getType(), data.getDevice(), data.getType(), data.getTime());
         }
     }
 
-    private void checkDate0(Rule rule, String host, int type, double newValue, long dataTime) {
+    private void checkDate0(Rule rule, String host, int type, String device, double newValue, long dataTime) {
         if(rule.getUsed() == 0)
             return;
 
@@ -64,9 +75,14 @@ public class WarnRuleChecker {
             return;
 
         // TODO: 过滤时间
-        final String key = host + "_" + rule.getId();
+        final String key;
+        if(device == null)
+            key = host + "_" + rule.getId();
+        else
+            key = host + "_" + device + "_" + rule.getId();
+
         if(!lock(key)) { //如果没有加锁成功，那么将此任务包装为回调
-            checkDataExecutor.submit(new CheckDataCallback(rule, host, type, newValue, dataTime));
+            checkDataExecutor.submit(new CheckDataCallback(rule, host, type, device, newValue, dataTime));
             return;
         }
 
@@ -187,7 +203,7 @@ public class WarnRuleChecker {
 
     /**
      * 对指定键加上悲观锁(互斥锁)
-     * 为了防止连接故障，对该锁仅加上10秒
+     * 为了防止连接故障，该锁过期时间为10秒
      * @return 是否加锁成功
      */
     private boolean lock(String key) {

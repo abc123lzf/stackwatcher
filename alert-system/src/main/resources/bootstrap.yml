@@ -1,6 +1,8 @@
 spring:
   application:
-    name: stackwatcher-alert
+    name: 192.168.142.1
+  profiles:
+    active: dev
   cloud:
     zookeeper:
       enabled: true

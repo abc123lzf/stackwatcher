@@ -3,6 +3,8 @@ package com.lzf.stackwatcher.alert.core.consumer;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import com.lzf.stackwatcher.entity.monitor.NovaMemoryMonitorData;
 
@@ -31,5 +33,19 @@ public class NovaMemoryConsumer extends Consumer {
 
             out.add(data);
         }
+    }
+
+    @Override
+    protected void resolveTimeSerialData(TimeSeriesData tsd, List<Data> out) {
+        NovaMemoryMonitorData data = (NovaMemoryMonitorData) tsd;
+        String host = data.getHost();
+        long time = data.getTime();
+
+        out.add(new Data(host, Rule.Type.NOVA_MEMORY_USED, data.getUsage(), time));
+        out.add(new Data(host, Rule.Type.NOVA_MEMORY_USED_UTILIZATION,
+                data.getUsage().doubleValue() / data.getSize().doubleValue(), time));
+        out.add(new Data(host, Rule.Type.NOVA_SWAPMEMORY_USED, data.getSwapUsage(), time));
+        out.add(new Data(host, Rule.Type.NOVA_SWAPMEMORY_USED_UTILIZATION,
+                data.getSwapUsage().doubleValue() / data.getSwapSize().doubleValue(), time));
     }
 }

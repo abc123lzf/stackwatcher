@@ -1,5 +1,6 @@
 package com.lzf.stackwatcher.alert.core.consumer;
 
+import com.lzf.stackwatcher.alert.core.Data;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -28,7 +29,8 @@ public abstract class Consumer implements Runnable {
     public final void run() {
         beforeRun();
         Thread t = Thread.currentThread();
-        final List<TimeSeriesData> dataList = new ArrayList<>(256);
+        final List<TimeSeriesData> tsdList = new ArrayList<>(256);
+        final List<Data> dList = new ArrayList<>(1024);
         while (!t.isInterrupted()) {
             ConsumerRecords<String, String> records = kafka.poll(Duration.ofMinutes(1));
             if(records == null)
@@ -36,10 +38,15 @@ public abstract class Consumer implements Runnable {
 
             for(ConsumerRecord<String, String> rec : records) {
                 try {
-                    handlerJSONData(rec.value(), dataList);
-                    dataList.sort(Comparator.comparingLong(TimeSeriesData::getTime));
-
-                    dataList.clear();
+                    handlerJSONData(rec.value(), tsdList);
+                    //按照数据的采集时间排序
+                    tsdList.sort(Comparator.comparingLong(TimeSeriesData::getTime));
+                    for(TimeSeriesData data : tsdList) {
+                        resolveTimeSerialData(data, dList);
+                        //
+                        dList.clear();
+                    }
+                    tsdList.clear();
                 } catch (Exception e) {
                     log.warn("处理JSON数据时发生异常", e);
                 }
@@ -49,8 +56,10 @@ public abstract class Consumer implements Runnable {
         kafka.close();
     }
 
+    protected abstract void resolveTimeSerialData(TimeSeriesData tsd, List<Data> out);
 
-    protected void checkData(String host, int type, double val, long time) {
+
+    protected final void checkData(Data data) {
 
     }
 

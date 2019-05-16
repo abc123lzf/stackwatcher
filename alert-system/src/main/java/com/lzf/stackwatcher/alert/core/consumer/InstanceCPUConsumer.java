@@ -3,6 +3,8 @@ package com.lzf.stackwatcher.alert.core.consumer;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import com.lzf.stackwatcher.entity.monitor.InstanceCPUMonitorData;
 
@@ -36,5 +38,12 @@ public class InstanceCPUConsumer extends Consumer {
         }
     }
 
+    @Override
+    protected void resolveTimeSerialData(TimeSeriesData tsd, List<Data> out) {
+        InstanceCPUMonitorData data = (InstanceCPUMonitorData) tsd;
+        String uuid = data.getUuid();
+        long time = data.getTime();
 
+        out.add(new Data(uuid, Rule.Type.INS_CPU_USAGE, data.getUsage(), time));
+    }
 }
