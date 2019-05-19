@@ -2,6 +2,7 @@ package com.lzf.stackwatcher.collector.subscriber;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.lzf.stackwatcher.collector.core.ZooKeeperConfig;
 import com.lzf.stackwatcher.common.AbstractConfig;
 import com.lzf.stackwatcher.common.ConfigInitializationException;
 import com.lzf.stackwatcher.common.ConfigManager;
@@ -9,6 +10,7 @@ import com.lzf.stackwatcher.entity.TimeSeriesData;
 import com.lzf.stackwatcher.entity.monitor.*;
 import com.lzf.stackwatcher.zookeeper.ZooKeeper;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.List;
@@ -42,6 +44,7 @@ public class InfluxDBConfig extends AbstractConfig {
     private String dbName;
     //采用的保留策略
     private String retentionPolicy;
+
     //数据类型和表名映射
     private final Map<Class<? extends TimeSeriesData>, String> tableMap = new ConcurrentHashMap<>(32);
 
@@ -52,53 +55,70 @@ public class InfluxDBConfig extends AbstractConfig {
 
     @Override
     protected void initInternal() throws ConfigInitializationException {
-        try {
-            List<String> influxList = zooKeeper.getChildNode(INFLUXDB_ZOOKEEPER_PATH);
-            if(influxList == null || influxList.size() == 0) {
-                throw new ConfigInitializationException("No influxDB defined in zookeeper");
+        ZooKeeperConfig cfg = configManager.getConfig(ZooKeeperConfig.NAME, ZooKeeperConfig.class);
+        if(!cfg.isRemote()) {
+            try(InputStream is = configManager.loadResource(CONFIG_PATH)) {
+                Properties p = new Properties();
+                p.load(is);
+                readConfig(p);
+            } catch (Exception e) {
+                throw new ConfigInitializationException(e);
             }
+        } else {
+            try(InputStream is = new ByteArrayInputStream(zooKeeper.readNode(cfg.getConfigPath()))) {
+                Properties p = new Properties();
+                p.load(is);
+                readConfig(p);
+            } catch (Exception e) {
+                throw new ConfigInitializationException(e);
+            }
+        }
+    }
 
-            Random r = new Random();
-            String json = new String(zooKeeper.readNode(INFLUXDB_ZOOKEEPER_PATH + "/" + influxList.get(r.nextInt(influxList.size()))), Charset.forName("UTF-8"));
+    private void readConfig(Properties p) throws Exception {
+        boolean assignInflux;
+        String influxdb = null;
 
-            JSONObject obj = JSON.parseObject(json);
-            this.host = obj.getString("host");
-            this.port = obj.getIntValue("port");
-            this.username = obj.getString("username");
-            this.password = obj.getString("password");
+        assignInflux = (influxdb = p.getProperty("influxdb.host")) != null;
 
-        } catch (Exception e) {
-            throw new ConfigInitializationException(e);
+        dbName = p.getProperty("influxdb.db-name");
+        retentionPolicy = p.getProperty("influxdb.retention-policy");
+
+        tableMap.put(InstanceCPUMonitorData.class, p.getProperty("influxdb.table.instance-cpu"));
+        tableMap.put(InstanceMemoryMonitorData.class, p.getProperty("influxdb.table.instance-memory"));
+        tableMap.put(InstanceNetworkIOMonitorData.class, p.getProperty("influxdb.table.instance-network-io"));
+        tableMap.put(InstanceDiskIOMonitorData.class, p.getProperty("influxdb.table.instance-disk-io"));
+        tableMap.put(InstanceDiskCapacityMonitorData.class, p.getProperty("influxdb.table.instance-disk-cap"));
+
+        tableMap.put(NovaCPUMonitorData.class, p.getProperty("influxdb.table.nova-cpu"));
+        tableMap.put(NovaMemoryMonitorData.class, p.getProperty("influxdb.table.nova-memory"));
+        tableMap.put(NovaNetworkIOMonitorData.class, p.getProperty("influxdb.table.nova-network-io"));
+        tableMap.put(NovaDiskIOMonitorData.class, p.getProperty("influxdb.table.nova-disk-io"));
+        tableMap.put(NovaDiskCapacityMonitorData.class, p.getProperty("influxdb.table.nova-disk-cap"));
+
+        tableMap.put(InstanceAgentCPUMonitorData.class, p.getProperty("influxdb.table.instance-agent-cpu"));
+        tableMap.put(InstanceAgentMemoryMonitorData.class, p.getProperty("influxdb.table.instance-agent-memory"));
+        tableMap.put(InstanceAgentNetworkMonitorData.class, p.getProperty("influxdb.table.instance-agent-network-io"));
+        tableMap.put(InstanceAgentDiskMonitorData.class, p.getProperty("influxdb.table.instance-agent-disk"));
+
+        List<String> influxList = zooKeeper.getChildNode(INFLUXDB_ZOOKEEPER_PATH);
+        if (influxList == null || influxList.size() == 0) {
+            throw new ConfigInitializationException("No influxDB defined in zookeeper");
         }
 
-
-        try(InputStream is = configManager.loadResource(CONFIG_PATH)) {
-            Properties p = new Properties();
-            p.load(is);
-
-            dbName = p.getProperty("influxdb.db-name");
-            retentionPolicy = p.getProperty("influxdb.retention-policy");
-
-            tableMap.put(InstanceCPUMonitorData.class, p.getProperty("influxdb.table.instance-cpu"));
-            tableMap.put(InstanceMemoryMonitorData.class, p.getProperty("influxdb.table.instance-memory"));
-            tableMap.put(InstanceNetworkIOMonitorData.class, p.getProperty("influxdb.table.instance-network-io"));
-            tableMap.put(InstanceDiskIOMonitorData.class, p.getProperty("influxdb.table.instance-disk-io"));
-            tableMap.put(InstanceDiskCapacityMonitorData.class, p.getProperty("influxdb.table.instance-disk-cap"));
-
-            tableMap.put(NovaCPUMonitorData.class, p.getProperty("influxdb.table.nova-cpu"));
-            tableMap.put(NovaMemoryMonitorData.class, p.getProperty("influxdb.table.nova-memory"));
-            tableMap.put(NovaNetworkIOMonitorData.class, p.getProperty("influxdb.table.nova-network-io"));
-            tableMap.put(NovaDiskIOMonitorData.class, p.getProperty("influxdb.table.nova-disk-io"));
-            tableMap.put(NovaDiskCapacityMonitorData.class, p.getProperty("influxdb.table.nova-disk-cap"));
-
-            tableMap.put(InstanceAgentCPUMonitorData.class, p.getProperty("influxdb.table.instance-agent-cpu"));
-            tableMap.put(InstanceAgentMemoryMonitorData.class, p.getProperty("influxdb.table.instance-agent-memory"));
-            tableMap.put(InstanceAgentNetworkMonitorData.class, p.getProperty("influxdb.table.instance-agent-network-io"));
-            tableMap.put(InstanceAgentDiskMonitorData.class, p.getProperty("influxdb.table.instance-agent-disk"));
-
-        } catch (Exception e) {
-            throw new ConfigInitializationException(e);
+        Random r = new Random();
+        String json;
+        if(!assignInflux) {
+            json = new String(zooKeeper.readNode(INFLUXDB_ZOOKEEPER_PATH + "/" + influxList.get(r.nextInt(influxList.size()))), Charset.forName("UTF-8"));
+        } else {
+            json = new String(zooKeeper.readNode(INFLUXDB_ZOOKEEPER_PATH + "/" + influxdb));
         }
+
+        JSONObject obj = JSON.parseObject(json);
+        this.host = obj.getString("host");
+        this.port = obj.getIntValue("port");
+        this.username = obj.getString("username");
+        this.password = obj.getString("password");
     }
 
     public String getDbHost() {

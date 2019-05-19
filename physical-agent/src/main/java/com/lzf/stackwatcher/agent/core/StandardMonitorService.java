@@ -5,6 +5,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import static java.lang.String.format;
 
+import com.lzf.stackwatcher.agent.*;
 import com.lzf.stackwatcher.agent.data.*;
 import org.apache.log4j.Logger;
 import org.libvirt.DomainBlockInfo;
@@ -32,10 +33,6 @@ import io.netty.util.concurrent.Future;
 
 import com.lzf.stackwatcher.common.ContainerBase;
 
-import com.lzf.stackwatcher.agent.DomainManagerService;
-import com.lzf.stackwatcher.agent.MonitorService;
-import com.lzf.stackwatcher.agent.RedisService;
-import com.lzf.stackwatcher.agent.TransferService;
 import com.lzf.stackwatcher.agent.core.LibvirtDomainAdaptor.DiskInfo;
 import com.lzf.stackwatcher.agent.core.LibvirtDomainAdaptor.NetworkInterface;
 
@@ -81,13 +78,15 @@ public class StandardMonitorService extends ContainerBase<DomainManagerService> 
 		addLifecycleEventListener(LifecycleLoggerListener.INSTANCE);
 		this.domainManagerService = domainManagerService;
 
-		getParent().getParent().registerConfig(new MonitorConfig(getParent().getParent()));
+		Agent agent = getParent().getParent();
+		agent.registerConfig(new MonitorConfig(agent, agent.getZooKeeper()));
 	}
 
 	@Override
 	protected void initInternal() {
-		redisService = getParent().getParent().getService(RedisService.DEFAULT_SERVICE_NAME, RedisService.class);
-		transferService = getParent().getParent().getService(TransferService.DEFAULT_SERVICE_NAME, TransferService.class);
+		Agent agent = getParent().getParent();
+		redisService = agent.getService(RedisService.DEFAULT_SERVICE_NAME, RedisService.class);
+		transferService = agent.getService(TransferService.DEFAULT_SERVICE_NAME, TransferService.class);
 		initNettyServer();
 	}
 	

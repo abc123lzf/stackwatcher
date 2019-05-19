@@ -6,6 +6,7 @@ import com.lzf.stackwatcher.common.ConfigInitializationException;
 import com.lzf.stackwatcher.common.ConfigManager;
 
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.util.Properties;
 
 public class ZooKeeperConfig extends AbstractConfig implements ZooKeeper.Config {
@@ -18,6 +19,10 @@ public class ZooKeeperConfig extends AbstractConfig implements ZooKeeper.Config 
     private int connectTimeout;
 
     private int sessionTimeout;
+
+    private boolean remote;
+
+    private String configPath;
 
     public ZooKeeperConfig(ConfigManager manager) {
         super(manager, NAME);
@@ -32,6 +37,11 @@ public class ZooKeeperConfig extends AbstractConfig implements ZooKeeper.Config 
             addresses = p.getProperty("zookeeper.address");
             connectTimeout = Integer.valueOf(p.getProperty("zookeeper.connection.timeout"));
             sessionTimeout = Integer.valueOf(p.getProperty("zookeeper.session.timeout"));
+            remote = Boolean.valueOf(p.getProperty("config.remote"));
+            if(remote) {
+                String host = InetAddress.getLocalHost().getCanonicalHostName();
+                configPath = "/stackwatcher/collector/config/" + host;
+            }
 
         } catch (Exception e) {
             throw new ConfigInitializationException(e);
@@ -51,5 +61,13 @@ public class ZooKeeperConfig extends AbstractConfig implements ZooKeeper.Config 
     @Override
     public int getSessionTimeout() {
         return sessionTimeout;
+    }
+
+    public boolean isRemote() {
+        return remote;
+    }
+
+    public String getConfigPath() {
+        return configPath;
     }
 }

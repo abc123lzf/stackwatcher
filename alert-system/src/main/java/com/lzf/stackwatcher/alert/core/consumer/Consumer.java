@@ -1,6 +1,7 @@
 package com.lzf.stackwatcher.alert.core.consumer;
 
 import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.core.WarnRuleChecker;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -18,11 +19,13 @@ public abstract class Consumer implements Runnable {
 
     private final KafkaConsumer<String, String> kafka;
 
+    private final WarnRuleChecker ruleChecker;
 
-    protected Consumer(String topic, Properties cfg) {
+    protected Consumer(WarnRuleChecker checker, String topic, Properties cfg) {
         this.log = LoggerFactory.getLogger(String.format("KafkaConsumer[topic:%s]",topic));
         this.kafka = new KafkaConsumer<>(Objects.requireNonNull(cfg));
         this.kafka.subscribe(Arrays.asList(Objects.requireNonNull(topic)));
+        this.ruleChecker = checker;
     }
 
     @Override
@@ -43,9 +46,13 @@ public abstract class Consumer implements Runnable {
                     tsdList.sort(Comparator.comparingLong(TimeSeriesData::getTime));
                     for(TimeSeriesData data : tsdList) {
                         resolveTimeSerialData(data, dList);
-                        //
-                        dList.clear();
                     }
+
+                    for(Data data : dList) {
+                        checkData(data);
+                    }
+
+                    dList.clear();
                     tsdList.clear();
                 } catch (Exception e) {
                     log.warn("处理JSON数据时发生异常", e);
@@ -56,11 +63,15 @@ public abstract class Consumer implements Runnable {
         kafka.close();
     }
 
+    /**
+     * 将TimeSeriesData转换为Data
+     * @param tsd 时序数据
+     * @param out 数据
+     */
     protected abstract void resolveTimeSerialData(TimeSeriesData tsd, List<Data> out);
 
-
-    protected final void checkData(Data data) {
-
+    private void checkData(Data data) {
+        ruleChecker.checkData(data);
     }
 
 

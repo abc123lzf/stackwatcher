@@ -21,7 +21,7 @@ public class KafkaConfig extends AbstractConfig {
 
     public static final String NAME = "config.kafka";
 
-    private static final String CONFIG_PATH = "classpath://config.properties";
+    private static final String CONFIG_PATH = "classpath://kafka.properties";
 
     private static final String ZOOKEEPER_KAFKA_PATH = "/brokers/ids";
 

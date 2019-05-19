@@ -8,6 +8,7 @@ import com.lzf.stackwatcher.common.ConfigInitializationException;
 import com.lzf.stackwatcher.common.ConfigManager;
 import com.lzf.stackwatcher.zookeeper.ZooKeeper;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -56,32 +57,66 @@ public class KafkaConfig extends AbstractConfig {
             throw new ConfigInitializationException(e);
         }
 
-        try(InputStream is = configManager.loadResource(CONFIG_PATH)) {
-            Properties p = new Properties();
-            p.load(is);
-
-            group = p.getProperty("kafka.group");
-
-            topicMap.put(InstanceCPUConsumer.class, p.getProperty("kafka.topic.instance-cpu"));
-            topicMap.put(InstanceNetworkIOConsumer.class, p.getProperty("kafka.topic.instance-network-io"));
-            topicMap.put(InstanceDiskIOConsumer.class, p.getProperty("kafka.topic.instance-disk-io"));
-            topicMap.put(InstanceDiskCapacityConsumer.class, p.getProperty("kafka.topic.instance-disk-capacity"));
-
-            topicMap.put(NovaCPUConsumer.class, p.getProperty("kafka.topic.nova-cpu"));
-            topicMap.put(NovaMemoryConsumer.class, p.getProperty("kafka.topic.nova-memory"));
-            topicMap.put(NovaNetworkIOConsumer.class, p.getProperty("kafka.topic.nova-network-io"));
-            topicMap.put(NovaDiskIOConsumer.class, p.getProperty("kafka.topic.nova-disk-io"));
-            topicMap.put(NovaDiskCapacityConsumer.class, p.getProperty("kafka.topic.nova-disk-capacity"));
-
-            topicMap.put(InstanceAgentCPUConsumer.class, p.getProperty("kafka.topic.instance-agent-cpu"));
-            topicMap.put(InstanceAgentMemoryConsumer.class, p.getProperty("kafka.topic.instance-agent-memory"));
-            topicMap.put(InstanceAgentNetworkIOConsumer.class, p.getProperty("kafka.topic.instance-agent-network"));
-            topicMap.put(InstanceAgentDiskConsumer.class, p.getProperty("kafka.topic.instance-agent-disk"));
-
-        } catch (Exception e) {
-            throw new ConfigInitializationException(e);
+        ZooKeeperConfig cfg = configManager.getConfig(ZooKeeperConfig.NAME, ZooKeeperConfig.class);
+        if(!cfg.isRemote()) {
+            try (InputStream is = configManager.loadResource(CONFIG_PATH)) {
+                Properties p = new Properties();
+                p.load(is);
+                readConfig(p);
+            } catch (Exception e) {
+                throw new ConfigInitializationException(e);
+            }
+        } else {
+            try {
+                byte[] b = zooKeeper.readNode(cfg.getConfigPath());
+                InputStream bis = new ByteArrayInputStream(b);
+                Properties p = new Properties();
+                p.load(bis);
+                readConfig(p);
+            } catch (Exception e) {
+                throw new ConfigInitializationException(e);
+            }
         }
     }
+
+    private void readConfig(Properties p) {
+        group = p.getProperty("kafka.group");
+
+        if(Boolean.valueOf(p.getProperty("kafka.instance-cpu.enable")))
+            topicMap.put(InstanceCPUConsumer.class, p.getProperty("kafka.topic.instance-cpu"));
+        if(Boolean.valueOf(p.getProperty("kafka.instance-network-io.enable")))
+            topicMap.put(InstanceNetworkIOConsumer.class, p.getProperty("kafka.topic.instance-network-io"));
+        if(Boolean.valueOf(p.getProperty("kafka.instance-disk-io.enable")))
+            topicMap.put(InstanceDiskIOConsumer.class, p.getProperty("kafka.topic.instance-disk-io"));
+        if(Boolean.valueOf(p.getProperty("kafka.instance-disk-capacity.enable")))
+            topicMap.put(InstanceDiskCapacityConsumer.class, p.getProperty("kafka.topic.instance-disk-capacity"));
+
+        if(Boolean.valueOf(p.getProperty("kafka.nova-cpu.enable")))
+            topicMap.put(NovaCPUConsumer.class, p.getProperty("kafka.topic.nova-cpu"));
+        if(Boolean.valueOf(p.getProperty("kafka.nova-memory.enable")))
+            topicMap.put(NovaMemoryConsumer.class, p.getProperty("kafka.topic.nova-memory"));
+        if(Boolean.valueOf(p.getProperty("kafka.nova-network.enable")))
+            topicMap.put(NovaNetworkIOConsumer.class, p.getProperty("kafka.topic.nova-network-io"));
+        if(Boolean.valueOf(p.getProperty("kafka.nova-disk-io.enable")))
+            topicMap.put(NovaDiskIOConsumer.class, p.getProperty("kafka.topic.nova-disk-io"));
+        if(Boolean.valueOf(p.getProperty("kafka.nova-disk-capacity.enable")))
+            topicMap.put(NovaDiskCapacityConsumer.class, p.getProperty("kafka.topic.nova-disk-capacity"));
+
+        if(Boolean.valueOf(p.getProperty("kafka.instance-agent-cpu.enable")))
+            topicMap.put(InstanceAgentCPUConsumer.class, p.getProperty("kafka.topic.instance-agent-cpu"));
+        if(Boolean.valueOf(p.getProperty("kafka.instance-agent-memory.enable")))
+            topicMap.put(InstanceAgentMemoryConsumer.class, p.getProperty("kafka.topic.instance-agent-memory"));
+        if(Boolean.valueOf(p.getProperty("kafka.instance-agent-network.enable")))
+            topicMap.put(InstanceAgentNetworkIOConsumer.class, p.getProperty("kafka.topic.instance-agent-network"));
+        if(Boolean.valueOf(p.getProperty("kafka.instance-agent-disk.enable")))
+            topicMap.put(InstanceAgentDiskConsumer.class, p.getProperty("kafka.topic.instance-agent-disk"));
+
+        if(Boolean.valueOf(p.getProperty("kafka.storage-pool.enable")))
+            topicMap.put(StoragePoolConsumer.class, p.getProperty("kafka.topic.nova-storage-pool"));
+        if(Boolean.valueOf(p.getProperty("kafka.storage-vol.enable")))
+            topicMap.put(StorageVolConsumer.class, p.getProperty("kafka.topic.nova-storage-vol"));
+    }
+
 
     public Properties connectProperties() {
         Properties p = new Properties();

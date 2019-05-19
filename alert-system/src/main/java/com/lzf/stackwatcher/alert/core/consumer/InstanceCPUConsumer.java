@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.core.WarnRuleChecker;
 import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import com.lzf.stackwatcher.entity.monitor.InstanceCPUMonitorData;
@@ -13,8 +14,13 @@ import java.util.Properties;
 
 public class InstanceCPUConsumer extends Consumer {
 
-    public InstanceCPUConsumer(String topic, Properties cfg) {
-        super(topic, cfg);
+    public InstanceCPUConsumer(WarnRuleChecker checker, String topic, Properties cfg) {
+        super(checker, topic, cfg);
+    }
+
+    @Override
+    protected void beforeRun() {
+        log.info("Instance-CPU监控数据告警处理器启动");
     }
 
     @Override

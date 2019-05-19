@@ -8,13 +8,18 @@ import com.lzf.stackwatcher.common.ConfigInitializationException;
 import com.lzf.stackwatcher.common.ConfigManager;
 import com.lzf.stackwatcher.zookeeper.ZooKeeper;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * 监控数据向Kafka队列上报的配置信息
+ */
 public class TransferConfig extends AbstractConfig implements TransferService.Config {
 
     private static final String CONFIG_PATH = "classpath://config.properties";
@@ -33,7 +38,6 @@ public class TransferConfig extends AbstractConfig implements TransferService.Co
 
     @Override
     protected void initInternal() throws ConfigInitializationException {
-
         try {
             List<String> list = zooKeeper.getChildNode(ZOOKEEPER_KAFKA_PATH);
             if(list == null)
@@ -50,14 +54,32 @@ public class TransferConfig extends AbstractConfig implements TransferService.Co
             throw new ConfigInitializationException(e);
         }
 
-        try(InputStream is = configManager.loadResource(CONFIG_PATH)) {
-            Properties p = new Properties();
-            p.load(is);
+        GlobalConfig cfg = configManager.getConfig(GlobalConfig.NAME, GlobalConfig.class);
+        if(!cfg.isRemoteConfig()) {
 
-            sendRate = Integer.valueOf(p.getProperty("monitor.sendrate"));
+            try (InputStream is = configManager.loadResource(CONFIG_PATH)) {
+                Properties p = new Properties();
+                p.load(is);
 
-        } catch (Exception e) {
-            throw new ConfigInitializationException(e);
+                sendRate = Integer.valueOf(p.getProperty("monitor.sendrate"));
+
+            } catch (Exception e) {
+                throw new ConfigInitializationException(e);
+            }
+        } else {
+            try {
+                byte[] b = zooKeeper.readNode(cfg.getZNodePath());
+                InputStream bis = new ByteArrayInputStream(b);
+                Properties p = new Properties();
+                p.load(bis);
+
+                sendRate = Integer.valueOf(p.getProperty("monitor.sendrate"));
+
+            } catch (UnknownHostException e) {
+                throw new Error(e);
+            } catch (Exception e) {
+                throw new ConfigInitializationException(e);
+            }
         }
     }
 

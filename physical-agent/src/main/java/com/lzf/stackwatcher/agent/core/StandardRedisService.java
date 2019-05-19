@@ -30,9 +30,14 @@ public class StandardRedisService extends ContainerBase<Agent> implements RedisS
 		setName("RedisService");
 		addLifecycleEventListener(LifecycleLoggerListener.INSTANCE);
 		this.agent = agent;
-		agent.registerConfig(new RedisConfig(agent));
+		agent.registerConfig(new RedisConfig(agent, getParent().getZooKeeper()));
 	}
-	
+
+	@Override
+	public final Agent getParent() {
+		return agent;
+	}
+
 	@Override
 	protected void initInternal() {
 		Config c = agent.getConfig(DEFAULT_CONFIG_NAME, Config.class);

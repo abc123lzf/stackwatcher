@@ -24,15 +24,15 @@ public class Collector extends ContainerBase<Void> implements ConfigManager {
 
     private final ConfigManager configManager = new DefaultConfigManager("ConfigManager");
 
-    // ZooKeeper连接对象
-    private final ZooKeeper zooKeeper;
-
     // ZooKeeper主节点
-    private final String zooPath;
+    private String zooPath;
 
-    private final ConsumerManager consumerManager;
+    // ZooKeeper连接对象
+    private ZooKeeper zooKeeper;
 
-    private final SubscriberManager subscriberManager;
+    private ConsumerManager consumerManager;
+
+    private SubscriberManager subscriberManager;
 
     public Collector() {
         try {
@@ -40,21 +40,36 @@ public class Collector extends ContainerBase<Void> implements ConfigManager {
         } catch (UnknownHostException e) {
             throw new Error(e);
         }
+    }
 
-        registerConfig(new ZooKeeperConfig(configManager));
+    @Override
+    protected void initInternal() {
+        ZooKeeperConfig cfg = new ZooKeeperConfig(configManager);
+        registerConfig(cfg);
+
         this.zooKeeper = new ZooKeeperConnector(configManager);
+
         setName(String.format("Collector [%s]", localAddress.getHostAddress()));
 
         this.zooPath = "/stackwatcher/collector/" + localAddress.getCanonicalHostName();
 
         consumerManager = new ConsumerManager(this);
         subscriberManager = new SubscriberManager(this);
-    }
 
-    @Override
-    protected void initInternal() {
         consumerManager.init();
         subscriberManager.init();
+
+        if(cfg.isRemote()) {
+            try {
+                zooKeeper.registerWatcher(cfg.getConfigPath(), e -> {
+                    log.info("Detected config node {} changed, ready to restart", cfg.getConfigPath());
+                    restart();
+                    log.info("Restart complete");
+                });
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 
     @Override
@@ -77,6 +92,20 @@ public class Collector extends ContainerBase<Void> implements ConfigManager {
             log.error("create znode " + zooPath + "failure.", e);
             System.exit(1);
         }
+    }
+
+    @Override
+    protected void stopInternal() {
+        zooKeeper.close();
+        consumerManager.stop();
+        subscriberManager.stop();
+    }
+
+    @Override
+    protected void restartInternal() {
+        stop();
+        init();
+        start();
     }
 
     public InetAddress getLocalAddress() {

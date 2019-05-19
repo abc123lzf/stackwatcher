@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.core.WarnRuleChecker;
 import com.lzf.stackwatcher.alert.entity.Alert;
 import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
@@ -14,8 +15,13 @@ import java.util.Properties;
 
 public class InstanceAgentCPUConsumer extends Consumer {
 
-    public InstanceAgentCPUConsumer(String topic, Properties cfg) {
-        super(topic, cfg);
+    public InstanceAgentCPUConsumer(WarnRuleChecker checker, String topic, Properties cfg) {
+        super(checker, topic, cfg);
+    }
+
+    @Override
+    protected void beforeRun() {
+        log.info("InstanceAgent-CPU监控数据告警判定处理器启动");
     }
 
     @Override

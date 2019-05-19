@@ -26,7 +26,6 @@ import org.apache.log4j.Logger;
  * @author 李子帆
  * @time 2018年11月20日 下午2:20:23
  */
-
 public class StandardAgent extends ContainerBase<Void> implements Agent {
 	
 	private static final Logger log = Logger.getLogger(StandardAgent.class);
@@ -45,26 +44,36 @@ public class StandardAgent extends ContainerBase<Void> implements Agent {
 		setName("Agent");
 		addLifecycleEventListener(LifecycleLoggerListener.INSTANCE);
 
-
-		configManager.registerConfig(new GlobalConfig(this));
 		configManager.registerConfig(new ZooKeeperConfig(this));
 	}
 	
 	@Override
 	protected void initInternal() {
-		 zooKeeper = new ZooKeeperConnector(this);
+		zooKeeper = new ZooKeeperConnector(this);
+		GlobalConfig cfg;
+		configManager.registerConfig(cfg = new GlobalConfig(this, zooKeeper));
 
-		 DomainManagerService dms = new StandardDomainManagerService(this);
-		 serviceMap.put(dms.serviceName(), dms);
+		DomainManagerService dms = new StandardDomainManagerService(this);
+		serviceMap.put(dms.serviceName(), dms);
 
-		 RedisService rs = new StandardRedisService(this);
-		 serviceMap.put(rs.serviceName(), rs);
-
-		 TransferService ts = new StandardTransferService(this);
-		 serviceMap.put(ts.serviceName(), ts);
+		RedisService rs = new StandardRedisService(this);
+		serviceMap.put(rs.serviceName(), rs);
+		TransferService ts = new StandardTransferService(this);
+		serviceMap.put(ts.serviceName(), ts);
 
 		for(Map.Entry<String, Service<?>> entry : serviceMap.entrySet()) {
 			entry.getValue().init();
+		}
+
+		if(cfg.isRemoteConfig()) {
+			try {
+				zooKeeper.registerWatcher(cfg.getZNodePath(), e -> {
+					log.info("Detected config ZNode \"" + cfg.getZNodePath() + "\" changed, ready to restart agent");
+					restart();
+				});
+			} catch (Exception e) {
+				throw new IllegalStateException("Could not register ZooKeeper watcher at ZNode " + cfg.getZNodePath(), e);
+			}
 		}
 	}
 	
@@ -132,6 +141,9 @@ public class StandardAgent extends ContainerBase<Void> implements Agent {
 		for(Map.Entry<String, Service<?>> entry : serviceMap.entrySet()) {
 			entry.getValue().stop();
 		}
+
+		executor.shutdownNow();
+		zooKeeper.close();
 	}
 	
 	@Override
@@ -139,6 +151,9 @@ public class StandardAgent extends ContainerBase<Void> implements Agent {
 		for(Map.Entry<String, Service<?>> entry : serviceMap.entrySet()) {
 			entry.getValue().restart();
 		}
+
+		init();
+		start();
 	}
 	
 	@Override

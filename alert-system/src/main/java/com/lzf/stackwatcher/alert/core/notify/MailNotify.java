@@ -8,6 +8,7 @@ import com.lzf.stackwatcher.common.ConfigManager;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
@@ -21,7 +22,7 @@ public class MailNotify implements NotifyMethod {
 
     private final JavaMailSender mailSender;
 
-    private final String pattern;
+    private String pattern;
 
     @Value("${spring.mail.username}") private String mailFrom;
 
@@ -30,8 +31,12 @@ public class MailNotify implements NotifyMethod {
     private static final SimpleDateFormat FORMAT_TIME = new SimpleDateFormat("HH:mm:ss");
 
     @Autowired
-    public MailNotify(JavaMailSender mailSender, ConfigManager configManager) {
+    public MailNotify(JavaMailSender mailSender) {
         this.mailSender = mailSender;
+    }
+
+    @Autowired @Lazy
+    public void setPattern(ConfigManager configManager) {
         this.pattern = Objects.requireNonNull(configManager.getConfig(
                 AlertMessageConfig.NAME, AlertMessageConfig.class)).getPattern();
     }
@@ -54,6 +59,7 @@ public class MailNotify implements NotifyMethod {
 
     private String decodePattern(Data data, Rule rule) {
         String str = pattern.replace("${HOST}", data.getHost())
+               .replace("${DEVICE}", data.getDevice() == null ? "" : data.getDevice())
                .replace("${RULE.NAME}", rule.getName())
                .replace("${RULE.ITEM}", Rule.Type.getById(data.getType()).value)
                .replace("${RULE.PERIOD}", rule.getPeriod().toString())

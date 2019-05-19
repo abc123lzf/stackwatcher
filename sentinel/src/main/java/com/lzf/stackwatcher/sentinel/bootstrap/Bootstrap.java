@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableConfigurationProperties(value = {DruidDataSourceProperties.class})
 @EnableTransactionManagement
 @EnableCaching
+
 public class Bootstrap {
 
     public static void main(String[] args) {

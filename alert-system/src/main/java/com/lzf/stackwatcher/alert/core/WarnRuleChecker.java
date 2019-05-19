@@ -4,6 +4,8 @@ import com.lzf.stackwatcher.alert.dao.AlertMapper;
 import com.lzf.stackwatcher.alert.dao.RuleMapper;
 import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.alert.entity.RuleExample;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Component;
@@ -13,20 +15,25 @@ import java.util.concurrent.*;
 
 @Component
 public class WarnRuleChecker {
+    private static final Logger log = LoggerFactory.getLogger(WarnRuleChecker.class);
+
+    private final AlertMessageSender messageSender;
 
     private final RedisTemplate<String, String> ssRedis;
     private final RedisTemplate<String, Number> siRedis;
+
     private final RuleMapper ruleMapper;
     private final AlertMapper alertMapper;
 
     private final ExecutorService checkDataExecutor = new ThreadPoolExecutor(1, 1, 0,
             TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
-    @Autowired
-    public WarnRuleChecker(RedisTemplate<String, String> ssRedis, RedisTemplate<String, Number> siRedis,
+    @Autowired @SuppressWarnings("unchecked")
+    public WarnRuleChecker(AlertMessageSender messageSender, RedisTemplate redisTemplate,
                            RuleMapper ruleMapper, AlertMapper alertMapper) {
-        this.ssRedis = ssRedis;
-        this.siRedis = siRedis;
+        this.messageSender = messageSender;
+        this.ssRedis = (RedisTemplate<String, String>) redisTemplate;
+        this.siRedis = (RedisTemplate<String, Number>) redisTemplate;
         this.ruleMapper = ruleMapper;
         this.alertMapper = alertMapper;
     }
@@ -34,24 +41,16 @@ public class WarnRuleChecker {
 
     private final class CheckDataCallback implements Runnable {
         private final Rule rule;
-        private final String host;
-        private final int type;
-        private final String device;
-        private final double newValue;
-        private final long dataTime;
+        private final Data data;
 
-        public CheckDataCallback(Rule rule, String host, int type, String device, double newValue, long dataTime) {
+        public CheckDataCallback(Rule rule, Data data) {
             this.rule = rule;
-            this.host = host;
-            this.type = type;
-            this.newValue = newValue;
-            this.dataTime = dataTime;
-            this.device = device;
+            this.data = data;
         }
 
         @Override
         public void run() {
-            checkDate0(rule, host, type, device, newValue, dataTime);
+            checkDate0(rule, data);
         }
     }
 
@@ -63,18 +62,22 @@ public class WarnRuleChecker {
         List<Rule> list = ruleMapper.selectByExample(re);
 
         for(Rule rule : list) {
-            checkDate0(rule, data.getHost(), data.getType(), data.getDevice(), data.getType(), data.getTime());
+            if(rule.getUsed() == 0)
+                continue;
+
+            if(rule.getItems() != data.getType())
+                continue;
+            // TODO: 过滤时间
+            checkDate0(rule, data);
         }
     }
 
-    private void checkDate0(Rule rule, String host, int type, String device, double newValue, long dataTime) {
-        if(rule.getUsed() == 0)
-            return;
+    private void checkDate0(Rule rule, Data data) {
+        final String host = data.getHost();
+        final String device = data.getDevice();
+        final double newValue = data.getValue();
+        final long dataTime = data.getTime();
 
-        if(rule.getItems() != type)
-            return;
-
-        // TODO: 过滤时间
         final String key;
         if(device == null)
             key = host + "_" + rule.getId();
@@ -82,14 +85,15 @@ public class WarnRuleChecker {
             key = host + "_" + device + "_" + rule.getId();
 
         if(!lock(key)) { //如果没有加锁成功，那么将此任务包装为回调
-            checkDataExecutor.submit(new CheckDataCallback(rule, host, type, device, newValue, dataTime));
+            checkDataExecutor.submit(new CheckDataCallback(rule, data));
             return;
         }
 
         final double limit = rule.getNumber();
 
+        Boolean hasKey = ssRedis.hasKey(key);
         try {
-            if(ssRedis.hasKey(key)) {
+            if(hasKey != null && hasKey) {
                 BoundHashOperations<String, String, Number> oper = siRedis.boundHashOps(key);
                 long time = oper.get("st_time").longValue();
                 double val = oper.get("val").doubleValue();
@@ -157,11 +161,11 @@ public class WarnRuleChecker {
                 if((dataTime - time) / 1000 > rule.getPeriod()) {
                     if(oper.get("statisfy").intValue() == 1) {
                         if (rule.getPeriodKeep() == 1 && setSilenceKey(key, rule.getSilenceTime())) {
-                            // TODO 发送告警信息
+                            messageSender.sendMessage(rule, data);
                         } else {
                             int t = setPeriodKey(key, rule.getPeriod(), rule.getPeriodKeep());
                             if(t >= rule.getPeriodKeep() && setSilenceKey(key, rule.getSilenceTime())) {
-                                //TODO 发送报警信息
+                                messageSender.sendMessage(rule, data);
                                 deletePeriodKey(key);
                             }
                         }
@@ -196,6 +200,9 @@ public class WarnRuleChecker {
 
                 oper.expire(rule.getPeriod() * 2, TimeUnit.SECONDS);
             }
+
+        } catch (Exception e) {
+            log.warn("处理告警规则时发生异常", e);
         } finally {
             unlock(key);
         }

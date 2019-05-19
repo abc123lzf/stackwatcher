@@ -26,13 +26,13 @@ public class StorageVolData extends CurrentNovaData {
     public final String type;
 
     public StorageVolData(String host, String name, String belongPool, String belongPoolUUID,
-                          long allocation, long capacity, String type1) {
+                          long allocation, long capacity, String type) {
         super(host, Data.NOVA_STORAGE_VOL);
         this.name = name;
         this.belongPool = belongPool;
         this.belongPoolUUID = belongPoolUUID;
         this.allocation = allocation;
         this.capacity = capacity;
-        this.type = type1;
+        this.type = type;
     }
 }

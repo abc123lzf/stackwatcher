@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.lzf.stackwatcher.alert.core.Data;
+import com.lzf.stackwatcher.alert.core.WarnRuleChecker;
 import com.lzf.stackwatcher.alert.entity.Rule;
 import com.lzf.stackwatcher.entity.TimeSeriesData;
 import com.lzf.stackwatcher.entity.monitor.InstanceNetworkIOMonitorData;
@@ -18,10 +19,15 @@ public class InstanceNetworkIOConsumer extends Consumer {
 
     private final String privateInterface;
 
-    public InstanceNetworkIOConsumer(String topic, Properties cfg) {
-        super(topic, cfg);
+    public InstanceNetworkIOConsumer(WarnRuleChecker checker, String topic, Properties cfg) {
+        super(checker, topic, cfg);
         publicInterface = Objects.requireNonNull(cfg.getProperty("instance.public-interface-name"));
         privateInterface = Objects.requireNonNull(cfg.getProperty("instance.private-interface-name"));
+    }
+
+    @Override
+    protected void beforeRun() {
+        log.info("Instance-磁盘IO容量监控数据告警处理器启动");
     }
 
     @Override

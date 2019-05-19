@@ -4,8 +4,11 @@ import com.lzf.stackwatcher.agent.MonitorService;
 import com.lzf.stackwatcher.common.AbstractConfig;
 import com.lzf.stackwatcher.common.ConfigInitializationException;
 import com.lzf.stackwatcher.common.ConfigManager;
+import com.lzf.stackwatcher.zookeeper.ZooKeeper;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.UnknownHostException;
 import java.util.Properties;
 /**
  * 监控服务配置项
@@ -14,6 +17,8 @@ import java.util.Properties;
 public class MonitorConfig extends AbstractConfig implements MonitorService.Config {
 
     private static final String CONFIG_PATH = "classpath://config.properties";
+
+    private final ZooKeeper zooKeeper;
 
     private boolean enable = true;
 
@@ -34,39 +39,58 @@ public class MonitorConfig extends AbstractConfig implements MonitorService.Conf
 
     private int insAgentRecivePort = 25001;
 
-    MonitorConfig(ConfigManager configManager) {
+    MonitorConfig(ConfigManager configManager, ZooKeeper zooKeeper) {
         super(configManager, MonitorService.DEFAULT_CONFIG_NAME);
+        this.zooKeeper = zooKeeper;
     }
 
     @Override
     protected void initInternal() throws ConfigInitializationException {
-        try(InputStream is = configManager.loadResource(CONFIG_PATH)) {
-            Properties p = new Properties();
-            p.load(is);
-            enable = Boolean.valueOf(p.getProperty("monitor.instance"));
-            if(!enable)
-                return;
-
-            insVCPURate = Integer.valueOf(p.getProperty("monitor.instance.cpu"));
-            insRAMRate = Integer.valueOf(p.getProperty("monitor.instance.memory"));
-            insNetIORate = Integer.valueOf(p.getProperty("monitor.instance.netio"));
-            insDiskIORate = Integer.valueOf(p.getProperty("monitor.instance.diskio"));
-            insDiskCapRate = Integer.valueOf(p.getProperty("monitor.instance.diskcap"));
-
-            novaCPURate = Integer.valueOf(p.getProperty("monitor.physical.cpu"));
-            novaRAMRate = Integer.valueOf(p.getProperty("monitor.physical.memory"));
-            novaNetIORate = Integer.valueOf(p.getProperty("monitor.physical.netio"));
-            novaDiskIORate = Integer.valueOf(p.getProperty("monitor.physical.diskio"));
-            novaDiskCapRate = Integer.valueOf(p.getProperty("monitor.physical.diskcap"));
-
-            storagePoolRate = Integer.valueOf(p.getProperty("monitor.storagepool"));
-            storageVol = Boolean.valueOf(p.getProperty("monitor.storagevol.enable"));
-
-            insAgentRecivePort = Integer.valueOf(p.getProperty("instance.agent.port"));
-
-        } catch (Exception e) {
-            throw new ConfigInitializationException(e);
+        GlobalConfig cfg = configManager.getConfig(GlobalConfig.NAME, GlobalConfig.class);
+        if(!cfg.isRemoteConfig()) {
+            try (InputStream is = configManager.loadResource(CONFIG_PATH)) {
+                Properties p = new Properties();
+                p.load(is);
+                readConfig(p);
+            } catch (Exception e) {
+                throw new ConfigInitializationException(e);
+            }
+        } else {
+            try {
+                byte[] b = zooKeeper.readNode(cfg.getZNodePath());
+                InputStream bis = new ByteArrayInputStream(b);
+                Properties p = new Properties();
+                p.load(bis);
+                readConfig(p);
+            } catch (UnknownHostException e) {
+                throw new Error(e);
+            } catch (Exception e) {
+                throw new ConfigInitializationException(e);
+            }
         }
+    }
+
+    private void readConfig(Properties p) {
+        enable = Boolean.valueOf(p.getProperty("monitor.instance"));
+        if(!enable)
+            return;
+
+        insVCPURate = Integer.valueOf(p.getProperty("monitor.instance.cpu"));
+        insRAMRate = Integer.valueOf(p.getProperty("monitor.instance.memory"));
+        insNetIORate = Integer.valueOf(p.getProperty("monitor.instance.netio"));
+        insDiskIORate = Integer.valueOf(p.getProperty("monitor.instance.diskio"));
+        insDiskCapRate = Integer.valueOf(p.getProperty("monitor.instance.diskcap"));
+
+        novaCPURate = Integer.valueOf(p.getProperty("monitor.physical.cpu"));
+        novaRAMRate = Integer.valueOf(p.getProperty("monitor.physical.memory"));
+        novaNetIORate = Integer.valueOf(p.getProperty("monitor.physical.netio"));
+        novaDiskIORate = Integer.valueOf(p.getProperty("monitor.physical.diskio"));
+        novaDiskCapRate = Integer.valueOf(p.getProperty("monitor.physical.diskcap"));
+
+        storagePoolRate = Integer.valueOf(p.getProperty("monitor.storagepool"));
+        storageVol = Boolean.valueOf(p.getProperty("monitor.storagevol.enable"));
+
+        insAgentRecivePort = Integer.valueOf(p.getProperty("instance.agent.port"));
     }
 
     @Override public boolean enable() { return enable; }
