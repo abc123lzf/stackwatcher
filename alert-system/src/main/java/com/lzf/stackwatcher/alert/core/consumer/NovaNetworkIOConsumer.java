@@ -62,10 +62,10 @@ public class NovaNetworkIOConsumer extends Consumer {
         String device = data.getDevice();
 
         out.add(new Data(host, Rule.Type.NOVA_NET_RX_BYTES, device, data.getRxBytes(), time));
-        out.add(new Data(host, Rule.Type.NOVA_NET_RX_PACKETS, device, data.getRxPackets(), time));
+        out.add(new Data(host, Rule.Type.NOVA_NET_RX_PACKAGES, device, data.getRxPackets(), time));
         out.add(new Data(host, Rule.Type.NOVA_NET_RX_DROP, device, data.getRxDrop(), time));
         out.add(new Data(host, Rule.Type.NOVA_NET_TX_BYTES, device, data.getTxBytes(), time));
-        out.add(new Data(host, Rule.Type.NOVA_NET_TX_PACKETS, device, data.getTxPackets(), time));
+        out.add(new Data(host, Rule.Type.NOVA_NET_TX_PACKAGES, device, data.getTxPackets(), time));
         out.add(new Data(host, Rule.Type.NOVA_NET_TX_DROP, device, data.getTxDrop(), time));
     }
 }

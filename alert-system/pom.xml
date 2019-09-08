@@ -15,7 +15,7 @@
 
         <dependency>
             <groupId>com.lzf</groupId>
-            <artifactId>stackwatcher</artifactId>
+            <artifactId>stackwatcher.common</artifactId>
             <version>1.0</version>
         </dependency>
 

@@ -85,10 +85,10 @@ public class Rule {
         INS_NET_PRIVATE_OUT_PACKAGE(47, "ins.net.private.out.package"),
 
         NOVA_NET_RX_BYTES(48, "nova.net.rx.bytes"),
-        NOVA_NET_RX_PACKETS(49, "nova.net.rx.packets"),
+        NOVA_NET_RX_PACKAGES(49, "nova.net.rx.packets"),
         NOVA_NET_RX_DROP(50, "nova.net.rx.drop"),
         NOVA_NET_TX_BYTES(51, "nova.net.tx.bytes"),
-        NOVA_NET_TX_PACKETS(52, "nova.net.tx.packets"),
+        NOVA_NET_TX_PACKAGES(52, "nova.net.tx.packets"),
         NOVA_NET_TX_DROP(53, "nova.net.tx.drop");
 
 

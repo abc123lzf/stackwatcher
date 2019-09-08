@@ -238,7 +238,7 @@ final class NovaAdaptor {
 			for(int i = 0; i < ifNames.length; i++) {
 				String name = ifNames[i];
 				NetInterfaceStat s = sigar.getNetInterfaceStat(name);
-				NetInterfaceStat os = null;
+				NetInterfaceStat os;
 				if((os = networkMap.get(name)) == null) {
 					networkMap.put(name, s);
 					continue;
@@ -295,8 +295,9 @@ final class NovaAdaptor {
 				//Linux文件系统中磁盘设备名以'/'开头
 				if(fs.getType() == FileSystem.TYPE_LOCAL_DISK) {
 					FileSystemUsage usage = sigar.getFileSystemUsage(fs.getDirName());
-					ls.add(new NovaDiskIOData.DeviceData(fs.getDevName(), usage.getDiskReads(), 
-							usage.getDiskWrites(), usage.getDiskReadBytes(), usage.getDiskWriteBytes()));
+					ls.add(new NovaDiskIOData.DeviceData(fs.getDevName(), Math.abs(usage.getDiskReads()),
+							Math.abs(usage.getDiskWrites()), Math.abs(usage.getDiskReadBytes()),
+							Math.abs(usage.getDiskWriteBytes())));
 				}
 			}
 			return new NovaDiskIOData(hostName, ls.toArray(new NovaDiskIOData.DeviceData[ls.size()]));

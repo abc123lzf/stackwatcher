@@ -43,6 +43,7 @@ public class AlertSystem extends ContainerBase<Void> implements ConfigManager, D
         log.info("Begin object AlertSystem init...");
         setName("AlertSystem");
         init();
+        log.info("AlertSystem initialize complete");
     }
 
     @Autowired
@@ -67,6 +68,7 @@ public class AlertSystem extends ContainerBase<Void> implements ConfigManager, D
 
     @Override
     protected void startInternal() {
+        log.info("Starting AlertSystem");
         KafkaConfig config = new KafkaConfig(configManager, zooKeeper);
         configManager.registerConfig(config);
 
@@ -87,6 +89,8 @@ public class AlertSystem extends ContainerBase<Void> implements ConfigManager, D
         executor.submit(new NovaMemoryConsumer(ruleChecker, config.getTopic(NovaMemoryConsumer.class), config.connectProperties()));
         executor.submit(new NovaDiskIOConsumer(ruleChecker, config.getTopic(NovaDiskIOConsumer.class), config.connectProperties()));
         executor.submit(new NovaDiskCapacityConsumer(ruleChecker, config.getTopic(NovaDiskCapacityConsumer.class), config.connectProperties()));
+
+        log.info("Start AlertSystem complete");
     }
 
     @Override

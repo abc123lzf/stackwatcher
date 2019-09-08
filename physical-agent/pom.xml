@@ -14,9 +14,10 @@
     <dependencies>
         <dependency>
             <groupId>com.lzf</groupId>
-            <artifactId>stackwatcher</artifactId>
+            <artifactId>stackwatcher.common</artifactId>
             <version>1.0</version>
         </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -54,11 +55,6 @@
             <version>4.8.0.201706111038-r</version>
         </dependency>
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-            <version>1.2.37</version>
-        </dependency>
-        <dependency>
             <groupId>org.libvirt</groupId>
             <artifactId>libvirt</artifactId>
             <version>0.5.1</version>
@@ -75,13 +71,6 @@
             <artifactId>netty-all</artifactId>
             <version>4.1.32.Final</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.pacesys</groupId>
-            <artifactId>openstack4j</artifactId>
-            <version>3.1.0</version>
-        </dependency>
-
 
     </dependencies>
 

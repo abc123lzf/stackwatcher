@@ -115,19 +115,21 @@ public class WarnRuleChecker {
                     } break;
 
                     case ALWAYS: {
+                        if(oper.get("statisfy").intValue() == 2)
+                            break;
                         switch (rule.compare()) {
                             case GREATER: {
                                 if(val >= limit) {
                                     oper.put("statisfy", 1);
                                 } else {
-                                    oper.put("statisfy", 0);
+                                    oper.put("statisfy", 2);
                                 }
                             } break;
                             case LESS: {
                                 if(val <= limit) {
                                     oper.put("statisfy", 1);
                                 } else {
-                                    oper.put("statisfy", 0);
+                                    oper.put("statisfy", 2);
                                 }
                             }
                         }
