@@ -12,7 +12,6 @@
         <module>physical-agent</module>
         <module>instance-agent</module>
         <module>collector</module>
-        <module>sentinel</module>
         <module>alert-system</module>
         <module>common</module>
     </modules>
@@ -41,12 +40,6 @@
                     <artifactId>logback-classic</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.pacesys</groupId>
-            <artifactId>openstack4j</artifactId>
-            <version>3.0.0</version>
         </dependency>
 
         <dependency>
